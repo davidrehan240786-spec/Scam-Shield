@@ -55,7 +55,11 @@ import {
   FileQuestion,
   ExternalLink,
   ChevronLeft,
-  Send
+  Send,
+  XCircle,
+  Smartphone,
+  Key,
+  Briefcase
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -83,6 +87,7 @@ import { useToast } from "@/lib/toast-context";
 
 import { TextRoll } from "@/components/ui/animated-menu";
 import { articles } from "@/data/articles";
+import { QUIZ_DATA } from "../data/quizData";
 import { RippleCircles } from "@/components/ui/ripple-circles";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
@@ -90,6 +95,49 @@ import { useTranslation, Language } from "@/i18n/TranslationContext";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+// --- Error Boundary ---
+
+class QuizErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("Quiz Arena Crash:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-12 rounded-[3rem] border-2 border-red-500/20 bg-red-500/[0.03] text-center space-y-6">
+          <div className="size-20 rounded-[2rem] bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto text-red-500">
+            <ShieldAlert className="size-10" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Arena Connection Interrupted</h2>
+            <p className="text-sm text-secondary max-w-sm mx-auto">We encountered a temporary issue with the quiz data. Your progress has been saved.</p>
+          </div>
+          <Button 
+            onClick={() => {
+              localStorage.removeItem("quiz_session_backup");
+              window.location.reload();
+            }} 
+            className="rounded-2xl bg-white text-black hover:bg-white/90 font-bold px-8"
+          >
+            Reset Arena Session
+          </Button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // --- Types ---
 
@@ -163,7 +211,37 @@ const DashboardView = ({ setActiveSection }: { setActiveSection: (s: Section) =>
   const { user } = useAuth();
   const { t } = useTranslation();
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Protector';
-  
+  const [communityReports, setCommunityReports] = useState<number>(0);
+  const [userReports, setUserReports] = useState<number>(0);
+  const [feedItems, setFeedItems] = useState<any[]>([]);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      setStatsLoading(true);
+      try {
+        const [{ count: total }, { count: mine }, { data: alerts }, { data: reports }] = await Promise.all([
+          supabase.from('scam_reports').select('*', { count: 'exact', head: true }),
+          supabase.from('scam_reports').select('*', { count: 'exact', head: true }).eq('user_id', user?.id || ''),
+          supabase.from('threat_alerts').select('id,title,severity,category,created_at').order('created_at', { ascending: false }).limit(2),
+          supabase.from('scam_reports').select('id,incident_title,severity,scam_type,created_at').order('created_at', { ascending: false }).limit(1),
+        ]);
+        setCommunityReports(total || 0);
+        setUserReports(mine || 0);
+        const combined = [
+          ...(alerts || []).map(a => ({ ...a, _type: 'alert', _label: t('threat_feed.global_alert') })),
+          ...(reports || []).map(r => ({ ...r, title: r.incident_title, category: r.scam_type, _type: 'report', _label: t('threat_feed.community_report') })),
+        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 3);
+        setFeedItems(combined);
+      } catch { /* silent */ } finally { setStatsLoading(false); }
+    };
+    fetchStats();
+  }, [user]);
+
+  const severityColor: Record<string, string> = {
+    critical: 'text-red-500', high: 'text-orange-500', medium: 'text-yellow-500', low: 'text-blue-400'
+  };
+
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <SectionHeader 
@@ -174,9 +252,9 @@ const DashboardView = ({ setActiveSection }: { setActiveSection: (s: Section) =>
       {/* 1. Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: t("dashboard.stats.protected"), value: "12,842", sub: t("dashboard.stats.verified"), icon: ShieldCheck, color: "text-blue-500", bg: "bg-blue-500/10" },
-          { label: t("dashboard.stats.reports"), value: "482", sub: t("dashboard.stats.verified"), icon: Activity, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-          { label: t("dashboard.stats.prevention"), value: "94.2%", sub: t("dashboard.stats.efficiency"), icon: Zap, color: "text-purple-500", bg: "bg-purple-500/10" },
+          { label: t("dashboard.stats.protected"), value: statsLoading ? "..." : (12000 + communityReports * 3).toLocaleString(), sub: t("dashboard.stats.verified"), icon: ShieldCheck, color: "text-blue-500", bg: "bg-blue-500/10" },
+          { label: t("dashboard.stats.reports"), value: statsLoading ? "..." : communityReports.toString(), sub: t("dashboard.stats.verified"), icon: Activity, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+          { label: "Your Reports", value: statsLoading ? "..." : userReports.toString(), sub: "Submitted by you", icon: Flag, color: "text-purple-500", bg: "bg-purple-500/10" },
           { label: t("dashboard.stats.risk"), value: t("dashboard.stats.low"), sub: t("dashboard.stats.stable"), icon: Radar, color: "text-blue-400", bg: "bg-blue-400/10" },
         ].map((stat, i) => (
           <Card key={i} className="p-6 rounded-[2rem] border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all group">
@@ -204,7 +282,28 @@ const DashboardView = ({ setActiveSection }: { setActiveSection: (s: Section) =>
              </Button>
           </div>
           <div className="space-y-4">
-             {/* Feed items would go here */}
+            {statsLoading ? (
+              <div className="py-8 text-center text-white/20 text-xs font-black uppercase tracking-widest animate-pulse">{t("dashboard.syncing")}</div>
+            ) : feedItems.length === 0 ? (
+              <div className="py-8 text-center text-white/20 text-xs font-black uppercase tracking-widest">No alerts yet — check back soon</div>
+            ) : feedItems.map((item, i) => (
+              <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
+                className="flex items-start gap-4 p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all group cursor-pointer"
+                onClick={() => setActiveSection("Threat Feed")}>
+                <div className={cn("size-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5", item._type === 'alert' ? 'bg-blue-500/10' : 'bg-emerald-500/10')}>
+                  {item._type === 'alert' ? <ShieldAlert className="size-4 text-blue-400" /> : <Flag className="size-4 text-emerald-400" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/40">{item._label}</span>
+                    <span className={cn("text-[9px] font-black uppercase tracking-widest", severityColor[(item.severity || 'medium').toLowerCase()] || 'text-white/40')}>{item.severity}</span>
+                  </div>
+                  <p className="text-sm font-bold text-white truncate group-hover:text-blue-400 transition-colors">{item.title}</p>
+                  <p className="text-[10px] text-white/30 mt-1">{item.category} • {new Date(item.created_at).toLocaleDateString()}</p>
+                </div>
+                <ChevronRight className="size-4 text-white/10 group-hover:text-blue-400 transition-colors shrink-0 mt-1" />
+              </motion.div>
+            ))}
           </div>
         </Card>
 
@@ -233,78 +332,484 @@ const DashboardView = ({ setActiveSection }: { setActiveSection: (s: Section) =>
   );
 };
 
+// ── OpenRouter-powered Scam Scanner ──────────────────────────────────────────
+
+interface ScanResult {
+  risk: "Low" | "Medium" | "High" | "Critical";
+  confidence: string;   // e.g. "92%"
+  verdict: "Safe" | "Suspicious" | "Scam";
+  redFlags: string[];
+  explanation: string;
+  recommendation: string;
+}
+
+const VERDICT_CONFIG = {
+  Safe:       { color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20", glow: "shadow-[0_0_40px_rgba(16,185,129,0.12)]",  label: "SAFE",       Icon: ShieldCheck  },
+  Suspicious: { color: "text-orange-400",  bg: "bg-orange-500/10",  border: "border-orange-500/20",  glow: "shadow-[0_0_40px_rgba(249,115,22,0.12)]",  label: "SUSPICIOUS", Icon: AlertTriangle },
+  Scam:       { color: "text-red-500",     bg: "bg-red-500/10",     border: "border-red-500/20",     glow: "shadow-[0_0_40px_rgba(239,68,68,0.18)]",   label: "⚠ SCAM",    Icon: ShieldAlert  },
+};
+
+const RISK_PILL: Record<string, string> = {
+  Low:      "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  Medium:   "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+  High:     "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  Critical: "bg-red-500/10 text-red-500 border-red-500/20",
+};
+
+const OPENROUTER_MODELS = [
+  "deepseek/deepseek-chat",
+  "meta-llama/llama-3-8b-instruct",
+  "mistralai/mistral-7b-instruct",
+  "openchat/openchat-7b"
+];
+
+// ── Heuristic Validation Layer (Safety Fallback) ──────────────────────────────
+const HEURISTIC_SCAM_SIGNALS = [
+  "otp", "verify", "account suspended", "kyc", "sbi", "hdfc", "icici", "bank",
+  "payment", "upi", "pay", "scan qr", "lottery", "won", "prize", "gift card",
+  "urgent", "immediately", "block", "freeze", "telegram", "whatsapp", "investment",
+  "profit", "bonus", "cashback", "refund", "customer care", "support", "remote access",
+  "anydesk", "teamviewer", "internship", "job offer", "application fee", "salary",
+  "login", "password", "credential", "update"
+];
+
+const containsScamSignal = (text: string) => {
+  const lowText = text.toLowerCase();
+  return HEURISTIC_SCAM_SIGNALS.some(signal => lowText.includes(signal));
+};
+
+
 const ScamScannerView = () => {
   const [scanInput, setScanInput] = useState("");
+  const [scanType, setScanType] = useState<"message" | "url" | "email" | "job">("message");
   const [scanning, setScanning] = useState(false);
-  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [result, setResult] = useState<ScanResult | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
   const { t } = useTranslation();
 
-  const handleScan = () => {
+  const SCAN_TYPES = [
+    { key: "message" as const, label: "Message / SMS",   Icon: MessageSquare },
+    { key: "email"   as const, label: "Email / Phishing", Icon: Bot },
+    { key: "url"     as const, label: "URL / Link",       Icon: Share2 },
+    { key: "job"     as const, label: "Job Offer",        Icon: Flag },
+  ] as const;
+
+  const handleScan = async () => {
     if (!scanInput.trim()) return;
     setScanning(true);
-    setTimeout(() => {
-      setAnalysis("This content exhibits multiple phishing patterns including urgency triggers and suspicious source origin. RECOMMENDATION: DO NOT INTERACT.");
+    setResult(null);
+    setScanError(null);
+
+    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    if (!apiKey) {
+      setScanError("OpenRouter API key not configured. Add VITE_OPENROUTER_API_KEY to .env.local");
       setScanning(false);
-    }, 2000);
+      return;
+    }
+
+    const typeLabel = { message: "SMS/WhatsApp message", email: "email", url: "URL/link", job: "job offer" }[scanType];
+    const prompt = `You are a Tier-1 Cybersecurity Analyst and Phishing Detection Engine.
+Your goal is to protect users from financial loss and data theft.
+
+ANALYSIS GUIDELINES:
+- ASSUME SUSPICIOUS INTENT unless strong evidence proves the content is legitimate.
+- PRIORITIZE SAFETY OVER OPTIMISM.
+- Aggressively detect: Phishing, Social Engineering, Financial Fraud, and Indian UPI/KYC Scams.
+- Watch for: Urgency, Fear tactics, Fake authority, Payment requests, and Link manipulation.
+
+HIGH-RISK INDICATORS (Automatic Critical/High Risk):
+- Requests for OTP, PIN, or Password.
+- Bank KYC updates via SMS (SBI, HDFC, ICICI, etc.).
+- UPI payment/refund links or QR code requests.
+- Job offers asking for "registration fees" or "security deposits".
+- Account suspension/blocking threats.
+- Telegram/WhatsApp "Investment/Crypto" schemes.
+- Cashback/Lottery/Winning claims.
+- Requests for remote access (AnyDesk, TeamViewer).
+
+Analyze this ${typeLabel}:
+"""
+${scanInput}
+"""
+
+RESPONSE FORMAT (Strict JSON):
+{
+  "verdict": "Safe" | "Suspicious" | "Scam",
+  "risk": "Low" | "Medium" | "High" | "Critical",
+  "confidence": "Number%", 
+  "redFlags": ["Exact reasons for risk"],
+  "explanation": "Brief technical analysis",
+  "recommendation": "Clear protective action"
+}
+
+LOGIC RULES:
+1. If Urgency + Payment/Link exists -> Verdict MUST be "Scam" and Risk MUST be "High" or "Critical".
+2. If Personal Info (KYC/Bank) is requested -> Verdict MUST be "Scam".
+3. NEVER return "Safe" or "Low" if any high-risk indicator is present.
+4. If uncertain, return "Suspicious" with Medium risk.
+5. redFlags MUST NOT be empty if verdict is not "Safe".`;
+
+    try {
+      let lastError = "";
+      let success = false;
+
+      for (const model of OPENROUTER_MODELS) {
+        try {
+          const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${apiKey}`,
+              "HTTP-Referer": import.meta.env.VITE_APP_URL || "http://localhost:5173",
+              "X-Title": "ScamShield AI Scanner",
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [{ role: "user", content: prompt }],
+              temperature: 0.1,
+              max_tokens: 400,
+            }),
+          });
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData?.error?.message || `HTTP ${res.status}`);
+          }
+
+          const data = await res.json();
+          const raw = data?.choices?.[0]?.message?.content || "";
+          if (!raw) throw new Error("Empty response from AI");
+
+          const cleaned = raw.replace(/```(?:json)?|```/g, "").trim();
+          const match = cleaned.match(/\{[\s\S]*\}/);
+          if (!match) throw new Error("Invalid format in AI response");
+          
+          const parsed: ScanResult = JSON.parse(match[0]);
+          
+          // ── Heuristic Validation Layer (Fallback) ──────────────────────────
+          // If AI says Safe/Medium but input has high-risk keywords, override it
+          if ((parsed.verdict === "Safe" || parsed.risk === "Low" || parsed.risk === "Medium") && containsScamSignal(scanInput)) {
+            parsed.verdict = "Suspicious";
+            parsed.risk = parsed.risk === "Low" ? "Medium" : parsed.risk;
+            parsed.confidence = "70% (Heuristic Override)";
+            if (parsed.redFlags.length === 0) {
+              parsed.redFlags = ["Suspicious keywords detected", "Potential social engineering patterns"];
+            }
+          }
+
+          parsed.verdict = (parsed.verdict as string).charAt(0).toUpperCase() + (parsed.verdict as string).slice(1).toLowerCase() as ScanResult["verdict"];
+          setResult(parsed);
+          success = true;
+          break;
+        } catch (err: any) {
+          console.warn(`Model ${model} failed:`, err.message);
+          lastError = err.message;
+          continue; // Try next model
+        }
+      }
+
+      if (!success) {
+        throw new Error(lastError || "All AI models failed to respond");
+      }
+
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (msg.includes("rate limit") || msg.includes("429"))
+        setScanError("Rate limit reached. Please wait a moment and try again.");
+      else if (msg.includes("401") || msg.includes("unauthorized"))
+        setScanError("Invalid API key. Check your VITE_OPENROUTER_API_KEY in .env");
+      else
+        setScanError(`Analysis failed: ${msg || "Service temporarily unavailable."}`);
+    } finally {
+      setScanning(false);
+    }
   };
+
+  const vcfg = result?.verdict ? VERDICT_CONFIG[result.verdict] ?? VERDICT_CONFIG.Suspicious : null;
+  const confNum = result ? parseInt(result.confidence) || 0 : 0;
+  const confBarColor = result?.verdict === "Safe" ? "bg-emerald-500" : result?.verdict === "Suspicious" ? "bg-orange-500" : "bg-red-500";
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <SectionHeader 
-        title={t("scanner.title")}
-        subtitle={t("scanner.subtitle")}
-      />
+      <SectionHeader title={t("scanner.title")} subtitle={t("scanner.subtitle")} />
 
       <div className="grid grid-cols-1 gap-8">
-        {/* Scan Input Card */}
-        <Card className="p-8 md:p-12 rounded-[3rem] border-blue-500/10 bg-blue-500/[0.02] relative overflow-hidden group">
-           <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-              <Bot className="size-32" />
-           </div>
-           
-           <div className="max-w-4xl mx-auto space-y-8 relative z-10">
-              <div className="space-y-4">
-                 <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-400 ml-1">
-                   {t("scanner.input_label")}
-                 </Label>
-                 <div className="relative group/input">
-                    <textarea 
-                      value={scanInput}
-                      onChange={(e) => setScanInput(e.target.value)}
-                      placeholder={t("scanner.placeholder")}
-                      className="w-full h-48 bg-white/[0.03] border-white/5 rounded-[2rem] p-8 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/30 transition-all resize-none font-medium leading-relaxed"
-                    />
-                 </div>
-              </div>
 
-              <div className="flex flex-col md:flex-row items-center gap-6">
-                 <div className="flex gap-4">
-                  <Button className="flex-1 h-14 rounded-2xl bg-white text-black font-bold uppercase tracking-widest text-[11px] hover:bg-white/90" onClick={handleScan}>
-                    {scanning ? t("scanner.scanning") : t("scanner.run_scan")}
-                  </Button>
-                  <Button variant="outline" className="h-14 w-14 rounded-2xl border-white/5 bg-white/5 hover:bg-white/10 text-white">
-                    <Download className="size-5" />
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="rounded-xl border-white/5 bg-white/5 hover:bg-white/10 h-11 px-4 gap-2 font-bold text-xs uppercase tracking-widest transition-all">
-                    <LogOut className="size-4 rotate-90" /> {t("scanner.upload_file")}
-                  </Button>
-                  <Button variant="outline" className="rounded-xl border-white/5 bg-white/5 hover:bg-white/10 h-11 px-4 gap-2 font-bold text-xs uppercase tracking-widest transition-all">
-                    <Share2 className="size-4" /> {t("scanner.link")}
-                  </Button>
-                </div>
-              </div>
-           </div>
+        {/* Scan Type Pills */}
+        <div className="flex flex-wrap gap-2">
+          {SCAN_TYPES.map(({ key, label, Icon }) => (
+            <button key={key} onClick={() => setScanType(key)}
+              className={cn("flex items-center gap-2 px-5 py-2.5 rounded-xl border text-[11px] font-black uppercase tracking-widest transition-all",
+                scanType === key
+                  ? "bg-blue-600 text-white border-blue-500 shadow-[0_8px_20px_rgba(37,99,235,0.25)]"
+                  : "bg-white/5 text-white/40 border-white/5 hover:bg-white/10 hover:text-white"
+              )}>
+              <Icon className="size-3" /> {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Input Card */}
+        <Card className="p-8 md:p-12 rounded-[3rem] border-blue-500/10 bg-blue-500/[0.02] relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
+            <Bot className="size-32" />
+          </div>
+          <div className="max-w-4xl mx-auto space-y-8 relative z-10">
+            <div className="space-y-3">
+              <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-400 ml-1">
+                {t("scanner.input_label")}
+              </Label>
+              <textarea
+                value={scanInput}
+                onChange={(e) => setScanInput(e.target.value)}
+                onKeyDown={(e) => { if (e.ctrlKey && e.key === "Enter") handleScan(); }}
+                placeholder={
+                  scanType === "url"     ? "Paste a suspicious URL or link here..." :
+                  scanType === "email"   ? "Paste the full email content here..." :
+                  scanType === "job"     ? "Paste the job offer message here..." :
+                  "Paste the suspicious SMS, WhatsApp message, or chat text here..."
+                }
+                className="w-full h-48 bg-white/[0.03] border border-white/5 rounded-[2rem] p-8 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/30 transition-all resize-none font-medium leading-relaxed text-sm"
+              />
+              <p className="text-[10px] text-white/20 ml-1">Ctrl + Enter to scan</p>
+            </div>
+            <div className="flex items-center gap-4 flex-wrap">
+              <Button onClick={handleScan} disabled={scanning || !scanInput.trim()}
+                className="h-14 px-12 rounded-2xl bg-white text-black font-bold uppercase tracking-widest text-[11px] hover:bg-white/90 disabled:opacity-50 gap-3 transition-all">
+                {scanning
+                  ? <><RefreshCcw className="size-4 animate-spin" /> Analysing…</>
+                  : <><ShieldCheck className="size-4" /> {t("scanner.run_scan")}</>}
+              </Button>
+              {result && (
+                <Button variant="outline" onClick={() => { setResult(null); setScanInput(""); setScanError(null); }}
+                  className="h-14 px-8 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white text-[11px] font-bold uppercase tracking-widest">
+                  Clear
+                </Button>
+              )}
+              {/* Model badge */}
+              <span className="ml-auto text-[9px] font-black uppercase tracking-widest text-white/20 flex items-center gap-1.5">
+                <Bot className="size-3" /> AI via OpenRouter
+              </span>
+            </div>
+          </div>
         </Card>
+
+        {/* Error Banner */}
+        {scanError && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="p-6 rounded-[2rem] border border-red-500/20 bg-red-500/10 text-red-400 font-bold text-sm flex items-start gap-3">
+            <ShieldAlert className="size-5 shrink-0 mt-0.5" />
+            <span>{scanError}</span>
+          </motion.div>
+        )}
+
+        {/* ── Results Card ── */}
+        {result && vcfg && (
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: "easeOut" }}>
+            <Card className={cn("p-8 md:p-12 rounded-[3rem] border-2 transition-all", vcfg.border, vcfg.bg, vcfg.glow)}>
+              <div className="space-y-10">
+
+                {/* ── Header: Verdict + Risk + Confidence ── */}
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+
+                  {/* Left: Icon + Verdict */}
+                  <div className="flex items-center gap-6">
+                    <div className={cn("size-24 rounded-[2rem] flex items-center justify-center border-2 shadow-lg", vcfg.bg, vcfg.border)}>
+                      <vcfg.Icon className={cn("size-12", vcfg.color)} />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30">AI Verdict</p>
+                      <h2 className={cn("text-5xl md:text-6xl font-black tracking-tighter uppercase leading-none", vcfg.color)}>
+                        {vcfg.label}
+                      </h2>
+                      {/* Risk Level Pill */}
+                      <span className={cn("inline-flex items-center px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest mt-1", RISK_PILL[result.risk] || RISK_PILL.Medium)}>
+                        Risk: {result.risk}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right: Confidence Meter */}
+                  <div className="space-y-3 min-w-[200px] w-full md:w-auto">
+                    <div className="flex justify-between items-center">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/30">AI Confidence</p>
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+                        className={cn("text-2xl font-black", vcfg.color)}>
+                        {result.confidence}
+                      </motion.p>
+                    </div>
+                    <div className="h-3 bg-white/5 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${confNum}%` }}
+                        transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
+                        className={cn("h-full rounded-full", confBarColor)}
+                      />
+                    </div>
+                    <p className="text-[9px] text-white/20 font-bold uppercase tracking-widest">Powered by OpenRouter AI</p>
+                  </div>
+                </div>
+
+                {/* ── Explanation ── */}
+                <div className="p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/30 flex items-center gap-2">
+                    <Bot className="size-3" /> AI Explanation
+                  </p>
+                  <p className="text-white/80 leading-relaxed font-medium text-sm">{result.explanation}</p>
+                  {result.verdict === "Safe" && (
+                    <p className="text-[10px] font-bold text-emerald-400/60 mt-4 pt-4 border-t border-white/5 flex items-center gap-2">
+                      <ShieldCheck className="size-3" /> Note: While this appears safe, always verify through official channels before sharing sensitive info.
+                    </p>
+                  )}
+                </div>
+
+                {/* ── Red Flags + Recommendation ── */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                  {/* Red Flags */}
+                  <div className="p-8 rounded-[2rem] bg-red-500/5 border border-red-500/10 space-y-4">
+                    <h4 className="text-red-400 font-bold text-sm flex items-center gap-2">
+                      <ShieldAlert className="size-4" />
+                      Red Flags Detected
+                      {result.redFlags.length > 0 && (
+                        <span className="ml-auto text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-black">{result.redFlags.length}</span>
+                      )}
+                    </h4>
+                    {result.redFlags.length > 0 ? (
+                      <ul className="space-y-2">
+                        {result.redFlags.map((flag, i) => (
+                          <motion.li key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + i * 0.08 }}
+                            className="text-xs text-white/70 flex items-start gap-3">
+                            <span className="size-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
+                            {flag}
+                          </motion.li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-emerald-400/60 flex items-center gap-2">
+                        <ShieldCheck className="size-3" /> No red flags detected.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Recommendation */}
+                  <div className="p-8 rounded-[2rem] bg-emerald-500/5 border border-emerald-500/10 space-y-4">
+                    <h4 className="text-emerald-400 font-bold text-sm flex items-center gap-2">
+                      <ShieldCheck className="size-4" /> Safety Recommendation
+                    </h4>
+                    <p className="text-xs text-white/70 leading-relaxed">{result.recommendation}</p>
+                  </div>
+                </div>
+
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
       </div>
     </div>
   );
 };
 
+
+
+const TRENDING_FRAUDS = [
+  {
+    id: "electricity",
+    title: "Fake Electricity Bill Scam",
+    icon: Zap,
+    color: "text-yellow-500",
+    bg: "bg-yellow-500/10",
+    shortDesc: "Urgent SMS claiming power will be cut due to unpaid bills.",
+    affected: ["Homeowners", "Small Businesses"],
+    workflow: [
+      { step: "The Hook", desc: "SMS: 'Your power will be cut tonight at 9PM. Pay pending bill now.'", icon: Mail },
+      { step: "Panic Interaction", desc: "Victim calls the fake support number provided in the message.", icon: Smartphone },
+      { step: "Remote Access", desc: "Scammer tricks user into installing a screen-sharing app (AnyDesk).", icon: Bot },
+      { step: "Small Payment", desc: "Victim is asked to pay a small Rs. 10 fee via a malicious link.", icon: Key },
+      { step: "Account Drain", desc: "Scammer sees credentials via screen-share and steals all funds.", icon: AlertTriangle },
+    ],
+    redFlags: ["Urgent deadlines", "Asking to install remote apps", "Calling from personal numbers"],
+    prevention: "Only pay through official electricity board apps or authorized portals."
+  },
+  {
+    id: "upi-qr",
+    title: "UPI QR Cashback Scam",
+    icon: QrCode,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+    shortDesc: "Scanning a QR code to 'receive' cashback or rewards.",
+    affected: ["Digital Payers", "Online Sellers"],
+    workflow: [
+      { step: "Fake Offer", desc: "User sees 'Scan to receive Rs. 500 cashback' offer on social media.", icon: Flame },
+      { step: "QR Scan", desc: "User scans the provided QR code using a payment app.", icon: QrCode },
+      { step: "PIN Request", desc: "The app asks for the UPI PIN (which is ONLY for sending money).", icon: Key },
+      { step: "Authorization", desc: "Victim enters PIN thinking they are authorizing a credit.", icon: CheckCircle },
+      { step: "Instant Loss", desc: "Money is instantly deducted from the victim's bank account.", icon: AlertTriangle },
+    ],
+    redFlags: ["QR code for receiving money", "Entering PIN to receive funds", "Unknown senders"],
+    prevention: "Remember: You NEVER need to enter your UPI PIN to receive money."
+  },
+  {
+    id: "kyc-phish",
+    title: "KYC Expiry Phishing",
+    icon: ShieldAlert,
+    color: "text-red-500",
+    bg: "bg-red-500/10",
+    shortDesc: "Fake bank alerts claiming your KYC has expired.",
+    affected: ["Bank Customers", "Senior Citizens"],
+    workflow: [
+      { step: "Bank Alert", desc: "Victim receives SMS impersonating a major bank (SBI, HDFC, etc.).", icon: Shield },
+      { step: "Phishing Link", desc: "SMS contains a link like 'bank-kyc-update.com/login'.", icon: ExternalLink },
+      { step: "Fake Portal", desc: "A perfectly cloned banking website asks for login ID and password.", icon: LayoutGrid },
+      { step: "OTP Capture", desc: "Scammer triggers a real transaction and asks for the OTP on the fake site.", icon: Smartphone },
+      { step: "Account Takeover", desc: "Scammer gains full access to net banking and changes credentials.", icon: AlertTriangle },
+    ],
+    redFlags: ["Non-official links", "SMS from personal 10-digit numbers", "Urgency threats"],
+    prevention: "Visit your bank branch or use the verified official net banking app only."
+  },
+  {
+    id: "job-fraud",
+    title: "Fake Job Offer Scam",
+    icon: Briefcase,
+    color: "text-blue-500",
+    bg: "bg-blue-500/10",
+    shortDesc: "High-paying work-from-home offers asking for 'fees'.",
+    affected: ["Job Seekers", "Students"],
+    workflow: [
+      { step: "Job Ad", desc: "Attractive job post on LinkedIn/Telegram: 'Earn 5k daily from home'.", icon: Briefcase },
+      { step: "Fast Interview", desc: "Scammer 'hires' the victim immediately via a short chat.", icon: MessageSquare },
+      { step: "Security Deposit", desc: "Victim is asked to pay for 'laptop', 'training', or 'ID card fee'.", icon: ShoppingBag },
+      { step: "Task Scam", desc: "User is asked to do simple tasks and 'invest' to unlock earnings.", icon: PlusCircle },
+      { step: "Ghosting", desc: "After collecting several payments, the scammer disappears.", icon: XCircle },
+    ],
+    redFlags: ["Jobs asking for money", "Too good to be true salaries", "Hiring via WhatsApp"],
+    prevention: "Legitimate companies never ask for money to provide a job or training."
+  },
+  {
+    id: "whatsapp-takeover",
+    title: "WhatsApp Account Takeover",
+    icon: MessageSquare,
+    color: "text-emerald-400",
+    bg: "bg-emerald-400/10",
+    shortDesc: "Tricking users into sharing their WhatsApp registration code.",
+    affected: ["Everyone", "Contacts of victims"],
+    workflow: [
+      { step: "Friend's Message", desc: "Scammer uses a compromised account to message their contacts.", icon: Users },
+      { step: "Urgent Favor", desc: "Scammer says: 'I sent you a code by mistake, can you send it back?'", icon: MessageSquare },
+      { step: "The Code", desc: "Victim receives a 6-digit WhatsApp registration code via SMS.", icon: Mail },
+      { step: "Sharing Code", desc: "Victim shares the code thinking they are helping a friend.", icon: Smartphone },
+      { step: "Total Lockout", desc: "Scammer registers the victim's account on their device and blocks them.", icon: AlertTriangle },
+    ],
+    redFlags: ["Sharing verification codes", "Friends asking for random SMS codes"],
+    prevention: "Enable 2-Step Verification (2FA) in WhatsApp settings immediately."
+  }
+];
+
 const ThreatFeedView = () => {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeFraud, setActiveFraud] = useState<string | null>(null);
   const { t } = useTranslation();
 
   const fetchAlerts = async () => {
@@ -339,7 +844,151 @@ const ThreatFeedView = () => {
         subtitle={t("threat_feed.subtitle")}
       />
 
+      {/* Trending Frauds Section */}
       <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <TrendingUp className="size-5 text-orange-500" />
+          <h3 className="text-xl font-black text-white uppercase tracking-tighter">Trending Frauds</h3>
+          <span className="px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-[9px] font-black text-red-500 animate-pulse uppercase tracking-widest ml-auto">Live Intelligence</span>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {TRENDING_FRAUDS.map((fraud) => (
+            <motion.button
+              key={fraud.id}
+              whileHover={{ y: -5, scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setActiveFraud(activeFraud === fraud.id ? null : fraud.id)}
+              className={cn(
+                "p-6 rounded-3xl border-2 transition-all text-left relative overflow-hidden group",
+                activeFraud === fraud.id 
+                  ? "bg-white text-black border-white shadow-[0_20px_50px_rgba(255,255,255,0.15)]" 
+                  : "bg-white/[0.02] border-white/5 hover:border-white/10 text-white"
+              )}
+            >
+              <div className={cn(
+                "size-10 rounded-xl flex items-center justify-center mb-4 transition-colors",
+                activeFraud === fraud.id ? "bg-black text-white" : cn(fraud.bg, fraud.color)
+              )}>
+                <fraud.icon className="size-5" />
+              </div>
+              <h4 className="font-bold text-xs leading-tight mb-2 uppercase tracking-tight">{fraud.title}</h4>
+              <p className={cn(
+                "text-[10px] leading-relaxed line-clamp-2 font-medium",
+                activeFraud === fraud.id ? "text-black/60" : "text-white/40"
+              )}>
+                {fraud.shortDesc}
+              </p>
+              
+              <div className={cn(
+                "absolute -bottom-1 -right-1 p-2 transition-transform duration-500",
+                activeFraud === fraud.id ? "rotate-180 scale-125" : "group-hover:translate-x-1"
+              )}>
+                <ChevronRight className={cn("size-4", activeFraud === fraud.id ? "text-black/10" : "text-white/10")} />
+              </div>
+            </motion.button>
+          ))}
+        </div>
+
+        {/* Fraud Detail Workflow */}
+        <AnimatePresence mode="wait">
+          {activeFraud && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, y: -20 }}
+              animate={{ opacity: 1, height: "auto", y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -20 }}
+              className="overflow-hidden"
+            >
+              <Card className="p-8 md:p-12 rounded-[3rem] border-white/10 bg-white/[0.03] relative">
+                <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+                  {React.createElement(TRENDING_FRAUDS.find(f => f.id === activeFraud)!.icon, { className: "size-48" })}
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 relative z-10">
+                  <div className="space-y-8">
+                    <div className="space-y-2">
+                       <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Fraud Workflow Analysis</span>
+                       <h3 className="text-3xl font-black text-white uppercase tracking-tighter">
+                         {TRENDING_FRAUDS.find(f => f.id === activeFraud)?.title}
+                       </h3>
+                       <p className="text-secondary font-medium leading-relaxed">
+                         {TRENDING_FRAUDS.find(f => f.id === activeFraud)?.shortDesc}
+                       </p>
+                    </div>
+
+                    <div className="space-y-6">
+                      <h5 className="text-[11px] font-black text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <Activity className="size-3" /> Step-by-Step Attack Vector
+                      </h5>
+                      <div className="space-y-4">
+                        {TRENDING_FRAUDS.find(f => f.id === activeFraud)?.workflow.map((item, idx) => (
+                          <div key={idx} className="flex gap-6 relative group">
+                            {idx !== 4 && (
+                              <div className="absolute left-[11px] top-8 bottom-[-16px] w-[2px] bg-white/5 group-hover:bg-blue-500/20 transition-colors" />
+                            )}
+                            <div className="size-6 rounded-full bg-white/10 border border-white/10 flex items-center justify-center shrink-0 mt-1 relative z-10 group-hover:border-blue-500/50 group-hover:bg-blue-500/20 transition-all">
+                               <item.icon className="size-3 text-white/40 group-hover:text-blue-400 transition-colors" />
+                            </div>
+                            <div className="space-y-1 pb-4">
+                               <p className="text-[11px] font-black text-white uppercase tracking-tight">{item.step}</p>
+                               <p className="text-xs text-white/40 font-medium leading-relaxed">{item.desc}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                     <div className="p-8 rounded-[2rem] bg-red-500/5 border border-red-500/10 space-y-4">
+                        <h4 className="text-red-500 font-bold flex items-center gap-2 text-sm">
+                           <ShieldAlert className="size-4" /> Red Flags to Watch
+                        </h4>
+                        <div className="grid grid-cols-1 gap-3">
+                           {TRENDING_FRAUDS.find(f => f.id === activeFraud)?.redFlags.map((flag, i) => (
+                             <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                               <div className="size-1.5 rounded-full bg-red-500 shrink-0" />
+                               <p className="text-xs text-white/70 font-medium">{flag}</p>
+                             </div>
+                           ))}
+                        </div>
+                     </div>
+
+                     <div className="p-8 rounded-[2rem] bg-emerald-500/5 border border-emerald-500/10 space-y-4">
+                        <h4 className="text-emerald-400 font-bold flex items-center gap-2 text-sm">
+                           <ShieldCheck className="size-4" /> Prevention & Countermeasures
+                        </h4>
+                        <p className="text-xs text-white/70 leading-relaxed font-medium p-4 bg-white/[0.02] rounded-xl border border-white/5 italic">
+                          "{TRENDING_FRAUDS.find(f => f.id === activeFraud)?.prevention}"
+                        </p>
+                     </div>
+
+                     <div className="flex flex-wrap gap-2 pt-4">
+                        <span className="text-[9px] font-black text-white/20 uppercase tracking-widest block w-full mb-2">Affected Targets</span>
+                        {TRENDING_FRAUDS.find(f => f.id === activeFraud)?.affected.map((target, i) => (
+                          <span key={i} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest">{target}</span>
+                        ))}
+                     </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setActiveFraud(null)}
+                  className="absolute top-6 right-6 size-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all"
+                >
+                  <X className="size-4" />
+                </button>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Activity className="size-5 text-blue-500" />
+          <h3 className="text-xl font-black text-white uppercase tracking-tighter">Live Alert Feed</h3>
+        </div>
         <AnimatePresence mode="popLayout">
           {loading ? (
             <div className="py-20 text-center text-white/20 font-black uppercase tracking-[0.3em]">{t("dashboard.syncing")}</div>
@@ -1232,69 +1881,272 @@ const LearningHubView = () => {
 
 const ScamQuizArenaView = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [sessionQuestions, setSessionQuestions] = useState<number[]>([]);
+  const [dailyStats, setDailyStats] = useState<any>(null);
   const [currentQuiz, setCurrentQuiz] = useState<number | null>(null);
-  const [quizState, setQuizState] = useState<'idle' | 'question' | 'result'>('idle');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<null | 'scam' | 'safe'>(null);
+  const [quizState, setQuizState] = useState<'idle' | 'question'>('idle');
+  const [selectedAnswer, setSelectedAnswer] = useState<'scam' | 'safe' | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock Quiz Questions
-  const questions = [
-    {
-      scenario: "You receive an SMS: 'URGENT: Your electricity bill is unpaid. Connection will be cut tonight at 9 PM. Pay immediately at bit.ly/power-pay-99'",
-      type: "scam",
-      explanation: "Official utility providers never send urgent threats via SMS with shortened bit.ly links. This is a classic phishing attempt to steal payment details.",
-      redFlags: ["Shortened URL (bit.ly)", "Urgency/Threat of disconnection", "Unverified sender number"]
-    },
-    {
-      scenario: "An email from 'Netflix Support' says: 'Your subscription payment failed. Please update your details to continue watching.' The sender email is support@netflix-billing.com",
-      type: "scam",
-      explanation: "Netflix uses netflix.com domains. Any variation like 'netflix-billing.com' is a fake domain used to capture login credentials.",
-      redFlags: ["Mismatched domain info", "Generic request for details"]
-    },
-    {
-      scenario: "A WhatsApp message from a friend's number: 'Hey, I'm stuck in an emergency. Can you send 5,000 via UPI? I'll pay you back tomorrow. [UPI Link]'",
-      type: "scam",
-      explanation: "This is a common account takeover scam. Scammers use compromised numbers to target friends. Always call the friend to verify before sending money.",
-      redFlags: ["Sudden emergency request for money", "Unusual communication style"]
-    }
+  const categories = [
+    { title: "Phishing Quiz", icon: ShieldAlert, bg: "bg-red-500/10", color: "text-red-500", desc: "Test your ability to spot fake emails and malicious links." },
+    { title: "UPI Scam Quiz", icon: Smartphone, bg: "bg-blue-500/10", color: "text-blue-500", desc: "Identify fraudulent UPI requests and payment links." },
+    { title: "OTP Theft Quiz", icon: Key, bg: "bg-emerald-500/10", color: "text-emerald-500", desc: "Learn to protect your one-time passwords from scammers." },
+    { title: "Fake Job Scam Quiz", icon: Briefcase, bg: "bg-purple-500/10", color: "text-purple-500", desc: "Recognize too-good-to-be-true job offers and fees." },
+    { title: "Social Media Scam Quiz", icon: Share2, bg: "bg-pink-500/10", color: "text-pink-500", desc: "Avoid giveaway scams and fake profiles on social platforms." }
   ];
 
+  useEffect(() => {
+    if (user) {
+      fetchQuizStats();
+      restoreSession();
+    }
+  }, [user]);
+
+  const restoreSession = () => {
+    if (!user) return;
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const saved = localStorage.getItem(`quiz_session_${user.id}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.date === today && typeof parsed.categoryIndex === 'number') {
+          // Validate indices exist in QUIZ_DATA
+          const cat = categories[parsed.categoryIndex];
+          if (cat && QUIZ_DATA[cat.title] && Array.isArray(parsed.questionIndices) && parsed.questionIndices.length > 0) {
+            setCurrentQuiz(parsed.categoryIndex);
+            setSessionQuestions(parsed.questionIndices);
+            setCurrentQuestionIndex(parsed.currentIndex || 0);
+            setScore(parsed.score || 0);
+            setQuizState(parsed.state || 'idle');
+          } else {
+            localStorage.removeItem(`quiz_session_${user.id}`);
+          }
+        } else {
+          localStorage.removeItem(`quiz_session_${user.id}`);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to restore session:", e);
+      localStorage.removeItem(`quiz_session_${user.id}`);
+    }
+  };
+
+  const saveSession = (updates: any) => {
+    if (!user) return;
+    const today = new Date().toISOString().split('T')[0];
+    const current = JSON.parse(localStorage.getItem(`quiz_session_${user.id}`) || '{"date":"' + today + '"}');
+    const newState = { ...current, date: today, ...updates };
+    localStorage.setItem(`quiz_session_${user.id}`, JSON.stringify(newState));
+  };
+
+  const fetchQuizStats = async () => {
+    setIsLoading(true);
+    if (!user?.id) {
+      setIsLoading(false);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('user_quiz_stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      const today = new Date().toISOString().split('T')[0];
+      
+      if (!data) {
+        const initial = { 
+          user_id: user?.id, 
+          total_answered: 0, 
+          correct_answers: 0, 
+          daily_attempts: 0, 
+          last_attempt_date: today,
+          streak_count: 0
+        };
+        await supabase.from('user_quiz_stats').insert(initial);
+        setDailyStats(initial);
+      } else {
+        let updatedData = { ...data };
+        const lastDate = new Date(data.last_attempt_date);
+        const todayDate = new Date(today);
+        const diffTime = Math.abs(todayDate.getTime() - lastDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (data.last_attempt_date !== today) {
+          updatedData.daily_attempts = 0;
+          if (diffDays > 1) {
+            updatedData.streak_count = 0;
+          }
+          await supabase.from('user_quiz_stats').update({
+            daily_attempts: 0,
+            streak_count: updatedData.streak_count,
+            last_attempt_date: today
+          }).eq('user_id', user?.id);
+          
+          localStorage.removeItem(`quiz_session_${user.id}`);
+        }
+        
+        setDailyStats(updatedData);
+      }
+    } catch (err) {
+      console.error('Error fetching quiz stats:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateQuizStats = async (isCorrect: boolean) => {
+    if (!user || !dailyStats) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const isFirstAttemptToday = dailyStats.last_attempt_date !== today || dailyStats.daily_attempts === 0;
+    
+    let newStreak = dailyStats.streak_count || 0;
+    if (isFirstAttemptToday) {
+      const lastDate = new Date(dailyStats.last_attempt_date);
+      const todayDate = new Date(today);
+      const diffTime = Math.abs(todayDate.getTime() - lastDate.getTime());
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 1) {
+        newStreak += 1;
+      } else if (diffDays > 1 || dailyStats.streak_count === 0) {
+        newStreak = 1;
+      }
+    }
+
+    const updates = {
+      total_answered: (dailyStats.total_answered || 0) + 1,
+      correct_answers: (dailyStats.correct_answers || 0) + (isCorrect ? 1 : 0),
+      daily_attempts: (dailyStats.daily_attempts || 0) + 1,
+      last_attempt_date: today,
+      streak_count: newStreak,
+      updated_at: new Date().toISOString()
+    };
+
+    try {
+      const { error } = await supabase
+        .from('user_quiz_stats')
+        .update(updates)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      setDailyStats({ ...dailyStats, ...updates });
+    } catch (err) {
+      console.error('Error updating quiz stats:', err);
+    }
+  };
+
   const handleStartQuiz = (index: number) => {
+    if (dailyStats && dailyStats.daily_attempts >= 3) {
+      toast({
+        title: "Daily Limit Reached",
+        description: "You've completed your 3 learning scenarios for today. Come back tomorrow!",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const cat = categories[index];
+    if (!cat || !QUIZ_DATA[cat.title] || QUIZ_DATA[cat.title].length === 0) {
+      toast({
+        title: "Category Unavailable",
+        description: "This arena is currently undergoing maintenance. Please try another!",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const allQuestions = QUIZ_DATA[cat.title];
+    
+    // Balanced Randomization: Pick 3 questions, ensure at least 1 scam and 1 safe if possible
+    const scams = allQuestions.map((q, i) => q.type === 'scam' ? i : -1).filter(i => i !== -1);
+    const safes = allQuestions.map((q, i) => q.type === 'safe' ? i : -1).filter(i => i !== -1);
+    
+    // Randomly shuffle
+    const shuffle = (array: number[]) => array.sort(() => Math.random() - 0.5);
+    const shuffledScams = shuffle([...scams]);
+    const shuffledSafes = shuffle([...safes]);
+    
+    const sessionIndices: number[] = [];
+    
+    // Pick 1 scam if available
+    if (shuffledScams.length > 0) sessionIndices.push(shuffledScams.pop()!);
+    // Pick 1 safe if available
+    if (shuffledSafes.length > 0) sessionIndices.push(shuffledSafes.pop()!);
+    
+    // Fill the rest (up to 3) from remaining pooled questions
+    const remaining = shuffle([...shuffledScams, ...shuffledSafes]);
+    while (sessionIndices.length < 3 && remaining.length > 0) {
+      sessionIndices.push(remaining.pop()!);
+    }
+
+    if (sessionIndices.length === 0) return;
+
+    // Randomize the order of the chosen scenarios
+    shuffle(sessionIndices);
+
+    setSessionQuestions(sessionIndices);
     setCurrentQuiz(index);
     setQuizState('question');
     setCurrentQuestionIndex(0);
     setScore(0);
     setSelectedAnswer(null);
     setShowExplanation(false);
+
+    saveSession({
+      categoryIndex: index,
+      questionIndices: sessionIndices,
+      currentIndex: 0,
+      score: 0,
+      state: 'question'
+    });
   };
 
-  const handleAnswer = (choice: 'scam' | 'safe') => {
+  const handleAnswer = async (choice: 'scam' | 'safe') => {
+    // Prevent multiple clicks and ensure question existence
+    if (selectedAnswer !== null || currentQuiz === null || sessionQuestions[currentQuestionIndex] === undefined) return;
+    
+    const cat = categories[currentQuiz];
+    if (!cat || !QUIZ_DATA[cat.title]) return;
+    
+    const catTitle = cat.title;
+    const qIndex = sessionQuestions[currentQuestionIndex];
+    const currentQ = QUIZ_DATA[catTitle][qIndex];
+    
+    if (!currentQ) return;
+    
+    const isCorrect = choice === currentQ.type;
+    
+    const newScore = isCorrect ? score + 1 : score;
     setSelectedAnswer(choice);
-    if (choice === questions[currentQuestionIndex].type) {
-      setScore(s => s + 1);
-    }
+    setScore(newScore);
     setShowExplanation(true);
+    
+    await updateQuizStats(isCorrect);
+    saveSession({ score: newScore, state: 'question' });
   };
 
   const handleNext = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(i => i + 1);
+    if (currentQuestionIndex < 2) { 
+      const nextIndex = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(nextIndex);
       setSelectedAnswer(null);
       setShowExplanation(false);
+      saveSession({ currentIndex: nextIndex });
     } else {
       setQuizState('result');
+      saveSession({ state: 'result' });
     }
   };
-
-  const categories = [
-    { title: "Phishing Quiz", icon: Mail, desc: "Can you spot the difference between real and fake emails?", color: "text-blue-400", bg: "bg-blue-500/10" },
-    { title: "UPI Scam Quiz", icon: QrCode, desc: "Test your ability to identify fraudulent payment requests.", color: "text-emerald-400", bg: "bg-emerald-500/10" },
-    { title: "OTP Theft Quiz", icon: ShieldCheck, desc: "How good are you at protecting your one-time passwords?", color: "text-red-400", bg: "bg-red-500/10" },
-    { title: "Fake Job Scam Quiz", icon: User, desc: "Learn to identify fraudulent job offers before you apply.", color: "text-orange-400", bg: "bg-orange-500/10" },
-    { title: "Social Media Scam Quiz", icon: Share2, desc: "Identify viral scams and impersonation attempts.", color: "text-cyan-400", bg: "bg-cyan-500/10" },
-  ];
 
   return (
     <div className="p-6 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -1306,11 +2158,16 @@ const ScamQuizArenaView = () => {
         </div>
         <div className="flex items-center gap-6 bg-white/5 border border-white/5 p-4 rounded-2xl">
           <div className="text-right">
-            <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">{t("quiz.global_rank")}</p>
+            <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Daily Scenarios</p>
             <div className="flex items-center gap-3">
-              <p className="text-2xl font-black text-white">Top 5%</p>
-              <div className="size-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-500">
-                <Star className="size-4" fill="currentColor" />
+              <p className="text-2xl font-black text-white">
+                {dailyStats ? 3 - dailyStats.daily_attempts : 3}/3
+              </p>
+              <div className={cn(
+                "size-8 rounded-full flex items-center justify-center transition-colors",
+                dailyStats?.daily_attempts >= 3 ? "bg-red-500/20 text-red-400" : "bg-emerald-500/20 text-emerald-400"
+              )}>
+                {dailyStats?.daily_attempts >= 3 ? <XCircle className="size-4" /> : <Clock className="size-4" />}
               </div>
             </div>
           </div>
@@ -1355,9 +2212,9 @@ const ScamQuizArenaView = () => {
               <div className="flex items-center gap-3">
                 <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">{t("quiz.progress")}</p>
                 <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }} />
+                  <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${((currentQuestionIndex + 1) / 3) * 100}%` }} />
                 </div>
-                <p className="text-[10px] font-black text-white">{currentQuestionIndex + 1}/{questions.length}</p>
+                <p className="text-[10px] font-black text-white">{currentQuestionIndex + 1}/3</p>
               </div>
               <div className="h-4 w-px bg-white/10" />
               <div className="flex items-center gap-2">
@@ -1369,34 +2226,48 @@ const ScamQuizArenaView = () => {
         </div>
 
         {quizState === 'idle' ? (
-          <Card className="p-12 rounded-[3.5rem] border-white/5 bg-white/[0.01] flex flex-col items-center justify-center text-center gap-8 py-24 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-            <div className="size-20 rounded-[2rem] bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 relative z-10 transition-transform group-hover:scale-110">
-              <Brain className="size-10" />
-            </div>
-            <div className="space-y-3 relative z-10">
-              <h4 className="text-2xl font-black text-white uppercase tracking-tighter">{t("quiz.daily_challenge")}</h4>
-              <p className="text-sm text-secondary font-medium max-w-sm mx-auto">{t("quiz.daily_desc")}</p>
-            </div>
-            <Button 
-              onClick={() => handleStartQuiz(0)}
-              className="rounded-2xl bg-white text-black px-12 h-14 font-black uppercase tracking-widest text-[11px] relative z-10 hover:bg-white/90 transform transition-all active:scale-95"
-            >
-              {t("quiz.start_daily")}
-            </Button>
-          </Card>
-        ) : quizState === 'question' ? (
-          <div className="max-w-3xl mx-auto w-full">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="space-y-4">
+            <h3 className="text-[11px] font-black text-white/40 uppercase tracking-[0.2em]">Select a Category to Begin</h3>
+            <Card className="p-12 rounded-[3.5rem] border-white/5 bg-white/[0.01] flex flex-col items-center justify-center text-center gap-8 py-24 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+              <div className="size-20 rounded-[2rem] bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 relative z-10 transition-transform group-hover:scale-110">
+                <Brain className="size-10" />
+              </div>
+              <div className="space-y-3 relative z-10">
+                <h4 className="text-2xl font-black text-white uppercase tracking-tighter">Your Daily Learning Goal</h4>
+                <p className="text-sm text-secondary font-medium max-w-sm mx-auto">Master 3 real-world scam scenarios every day to build your cybersecurity immunity.</p>
+              </div>
+              <div className="flex items-center gap-12 relative z-10">
+                <div className="text-center">
+                   <p className="text-3xl font-black text-white">{dailyStats?.streak_count || 0}</p>
+                   <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Day Streak</p>
+                </div>
+                <div className="text-center">
+                   <p className="text-3xl font-black text-emerald-400">{dailyStats?.total_answered ? Math.round((dailyStats?.correct_answers / dailyStats?.total_answered) * 100) : 0}%</p>
+                   <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Precision</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        ) : quizState === 'question' && currentQuiz !== null && sessionQuestions.length > 0 && categories[currentQuiz] && QUIZ_DATA[categories[currentQuiz].title]?.[sessionQuestions[currentQuestionIndex]] ? (
+          <div className="w-full">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} layout>
               <Card className="p-10 rounded-[3rem] border-white/5 bg-white/[0.01] relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-8 opacity-5">
                   <Brain className="size-32" />
                 </div>
                 
                 <div className="relative z-10 space-y-10">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Category: {categories[currentQuiz].title}</p>
+                      <p className="text-lg font-black text-white uppercase tracking-tighter">Scenario {currentQuestionIndex + 1}/3</p>
+                    </div>
+                  </div>
+
                   <div className="p-10 rounded-[2.5rem] bg-white text-black font-semibold text-lg leading-relaxed italic border-4 border-dashed border-black/10 relative shadow-2xl">
-                    <div className="absolute -top-4 -left-4 bg-red-500 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">{t("scam_scanner.suspect_match")}</div>
-                    "{questions[currentQuestionIndex].scenario}"
+                    <div className="absolute -top-4 -left-4 bg-red-500 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">New Scenario Detected</div>
+                    "{QUIZ_DATA[categories[currentQuiz].title][sessionQuestions[currentQuestionIndex]].scenario}"
                   </div>
 
                   {!showExplanation ? (
@@ -1405,52 +2276,66 @@ const ScamQuizArenaView = () => {
                         onClick={() => handleAnswer('scam')}
                         className="h-24 rounded-[2rem] bg-red-500/10 border-2 border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white text-xl font-black uppercase tracking-[0.2em] transition-all shadow-lg hover:shadow-red-500/20"
                       >
-                        {t("quiz.scam")}
+                        SCAM
                       </Button>
                       <Button 
                         onClick={() => handleAnswer('safe')}
                         className="h-24 rounded-[2rem] bg-emerald-500/10 border-2 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-black text-xl font-black uppercase tracking-[0.2em] transition-all shadow-lg hover:shadow-emerald-500/20"
                       >
-                        {t("quiz.safe")}
+                        SAFE
                       </Button>
                     </div>
                   ) : (
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-8">
                       <div className={cn(
                         "p-8 rounded-[2.5rem] flex items-center gap-6",
-                        selectedAnswer === questions[currentQuestionIndex].type 
+                        selectedAnswer === QUIZ_DATA[categories[currentQuiz].title][sessionQuestions[currentQuestionIndex]].type 
                           ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
                           : "bg-red-500/10 border border-red-500/20 text-red-500"
                       )}>
                         <div className="size-16 rounded-2xl bg-black/20 flex items-center justify-center">
-                          {selectedAnswer === questions[currentQuestionIndex].type ? <CheckCircle className="size-10" /> : <ShieldAlert className="size-10" />}
+                          {selectedAnswer === QUIZ_DATA[categories[currentQuiz].title][sessionQuestions[currentQuestionIndex]].type ? <CheckCircle className="size-10" /> : <ShieldAlert className="size-10" />}
                         </div>
                         <div>
                           <p className="text-2xl font-black uppercase tracking-tighter">
-                            {selectedAnswer === questions[currentQuestionIndex].type ? t("quiz.correct") : t("quiz.incorrect")}
+                            {selectedAnswer === QUIZ_DATA[categories[currentQuiz].title][sessionQuestions[currentQuestionIndex]].type ? "CORRECT" : "INCORRECT"}
                           </p>
-                          <p className="text-sm font-medium opacity-70">{t("quiz.identified_as")} {questions[currentQuestionIndex].type}.</p>
+                          <p className="text-sm font-medium opacity-70">Identified as {QUIZ_DATA[categories[currentQuiz].title][sessionQuestions[currentQuestionIndex]].type}.</p>
                         </div>
                       </div>
 
                       <div className="space-y-6 bg-white/[0.02] p-8 rounded-[2.5rem] border border-white/5">
-                        <p className="text-secondary text-sm leading-relaxed">{questions[currentQuestionIndex].explanation}</p>
-                        
-                        <div className="space-y-3">
-                          <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">{t("quiz.red_flags_spotted")}</p>
-                          <div className="flex flex-wrap gap-2">
-                            {questions[currentQuestionIndex].redFlags.map((flag, i) => (
-                              <span key={i} className="text-[10px] font-bold text-white/50 bg-white/5 border border-white/5 px-4 py-2 rounded-full">{flag}</span>
-                            ))}
-                          </div>
+                        <div className="space-y-2">
+                           <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Cybersecurity Expert Analysis</p>
+                           <p className="text-secondary text-sm leading-relaxed">{QUIZ_DATA[categories[currentQuiz].title][sessionQuestions[currentQuestionIndex]].explanation}</p>
                         </div>
+                        
+                        {QUIZ_DATA[categories[currentQuiz].title][sessionQuestions[currentQuestionIndex]].type === 'scam' ? (
+                          <div className="space-y-3">
+                            <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Scam Indicators (Red Flags)</p>
+                            <div className="flex flex-wrap gap-2">
+                              {QUIZ_DATA[categories[currentQuiz].title][sessionQuestions[currentQuestionIndex]].redFlags.map((flag: string, i: number) => (
+                                <span key={i} className="text-[10px] font-bold text-white/50 bg-white/5 border border-white/5 px-4 py-2 rounded-full">{flag}</span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Trust Indicators (Safe Signs)</p>
+                            <div className="flex flex-wrap gap-2">
+                              {QUIZ_DATA[categories[currentQuiz].title][sessionQuestions[currentQuestionIndex]].trustIndicators?.map((indicator: string, i: number) => (
+                                <span key={i} className="text-[10px] font-bold text-white/50 bg-white/5 border border-white/5 px-4 py-2 rounded-full">{indicator}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <Button 
                         onClick={handleNext}
                         className="w-full h-16 rounded-[2rem] bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest text-xs shadow-xl"
                       >
-                        {currentQuestionIndex < questions.length - 1 ? t("quiz.next_scenario") : t("quiz.review_performance")}
+                        {currentQuestionIndex < 2 ? "Next Scenario" : "Finish Assessment"}
                       </Button>
                     </motion.div>
                   )}
@@ -1459,7 +2344,7 @@ const ScamQuizArenaView = () => {
             </motion.div>
           </div>
         ) : (
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-xl mx-auto w-full text-center space-y-10 py-12">
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-4xl mx-auto w-full text-center space-y-10 py-12">
             <div className="space-y-4">
               <div className="size-24 rounded-[2.5rem] bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mx-auto mb-8 animate-bounce">
                 <Star className="size-12 text-yellow-500" fill="currentColor" />
@@ -1468,84 +2353,46 @@ const ScamQuizArenaView = () => {
               <p className="text-secondary font-medium uppercase tracking-widest text-[10px]">{t("quiz.analysis_complete")}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="p-10 rounded-[2.5rem] border-white/5 bg-white/[0.01]">
-                 <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-4">{t("quiz.precision_rate")}</p>
-                 <p className="text-6xl font-black text-white leading-none">{Math.round((score / questions.length) * 100)}%</p>
+                 <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-4">Assessment Accuracy</p>
+                 <p className="text-6xl font-black text-white leading-none">{Math.round((score / 3) * 100)}%</p>
+                 <p className="text-[10px] text-secondary mt-4 uppercase font-bold tracking-widest">{score === 3 ? "Perfect Precision" : "Keep Learning"}</p>
               </Card>
               <Card className="p-10 rounded-[2.5rem] border-white/5 bg-white/[0.01]">
-                 <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-4">{t("quiz.threat_index")}</p>
-                 <p className="text-2xl font-black text-emerald-400 uppercase tracking-widest">{score === questions.length ? t("quiz.elite") : t("quiz.protector")}</p>
+                 <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-4">Threat Index Level</p>
+                 <p className={cn("text-3xl font-black uppercase tracking-widest leading-none", score === 3 ? "text-emerald-400" : "text-yellow-400")}>
+                   {score === 3 ? "ELITE DEFENDER" : "AWARE PROTECTOR"}
+                 </p>
+                 <div className="flex items-center justify-center gap-2 mt-6">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className={cn("size-2 rounded-full", i < score ? "bg-emerald-400" : "bg-white/10")} />
+                    ))}
+                 </div>
               </Card>
             </div>
 
             <Button 
-              onClick={() => setQuizState('idle')}
+              onClick={() => {
+                setQuizState('idle');
+                setCurrentQuiz(null);
+                localStorage.removeItem(`quiz_session_${user?.id}`);
+              }}
               className="w-full h-16 rounded-[2rem] bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest text-xs"
             >
-              {t("quiz.reset_session")}
+              Back to Arena
             </Button>
           </motion.div>
         )}
       </div>
 
-      {/* 4. Quick Scam Tips & Recent Results */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8">
-        <div className="lg:col-span-2 space-y-6">
-          <h3 className="text-[11px] font-black text-white/40 uppercase tracking-[0.2em]">{t("quiz.quick_tips")}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-             {[
-               { title: "Zero Trust Method", desc: "Never share OTPs. No bank official will ever ask for them.", icon: ShieldCheck, color: "text-red-400", bg: "bg-red-500/10" },
-               { title: "Domain Audit", desc: "Verify URLs. Check for subtle misspellings in domain names.", icon: Mail, color: "text-blue-400", bg: "bg-blue-500/10" },
-               { title: "App Vigilance", desc: "Always install apps from verified official stores only.", icon: Zap, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-             ].map((tip, i) => (
-                <Card key={i} className="p-6 rounded-[2rem] border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all space-y-4">
-                  <div className={cn("size-10 rounded-xl flex items-center justify-center", tip.bg, tip.color)}>
-                    <tip.icon className="size-5" />
-                  </div>
-                  <div>
-                    <h5 className="font-bold text-white text-xs mb-1 uppercase tracking-tighter">{tip.title}</h5>
-                    <p className="text-[10px] text-white/40 leading-relaxed font-medium">{tip.desc}</p>
-                  </div>
-                </Card>
-             ))}
-          </div>
-        </div>
 
-        <div className="space-y-6">
-          <h3 className="text-[11px] font-black text-white/40 uppercase tracking-[0.2em]">{t("quiz.recent_stats")}</h3>
-          <Card className="p-8 rounded-[2.5rem] border-white/5 bg-white/[0.01] space-y-8">
-             <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-1">
-                   <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">{t("quiz.last_score")}</p>
-                   <p className="text-3xl font-black text-emerald-400">4/5</p>
-                </div>
-                <div className="space-y-1">
-                   <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">{t("quiz.peak_performance")}</p>
-                   <p className="text-3xl font-black text-yellow-500">100%</p>
-                </div>
-             </div>
-             <div className="pt-6 border-t border-white/5">
-                <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-4">{t("quiz.top_skill")}</p>
-                <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
-                   <div className="size-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
-                      <Mail className="size-5" />
-                   </div>
-                   <div>
-                      <p className="text-xs font-black text-white uppercase tracking-tighter leading-none">{t("quiz.phishing_expert")}</p>
-                      <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-1">{t("quiz.level")} 4</p>
-                   </div>
-                </div>
-             </div>
-          </Card>
-        </div>
-      </div>
     </div>
   );
 };
 
 
-const SettingsView = () => {
+const SettingsView = ({ onLogout }: { onLogout: () => void }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t, language, setLanguage } = useTranslation();
@@ -1774,7 +2621,12 @@ const SettingsView = () => {
                 </div>
                 
                 <div className="space-y-2 relative z-10">
-                   <Button variant="outline" className="w-full h-12 rounded-2xl border-white/5 bg-white/5 hover:bg-white text-black font-black text-[10px] uppercase tracking-widest transition-all">{t("settings.logout_everywhere")}</Button>
+                   <Button 
+                     onClick={onLogout}
+                     className="w-full h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-black text-[10px] uppercase tracking-widest transition-all shadow-xl"
+                   >
+                     {t("nav.logout")}
+                   </Button>
                    <Button variant="outline" className="w-full h-12 rounded-2xl border-red-500/20 hover:bg-red-500 text-white font-black text-[10px] uppercase tracking-widest transition-all">{t("settings.delete_account")}</Button>
                 </div>
                 <button className="w-full text-center text-[9px] font-black text-white/20 uppercase tracking-[0.4em] hover:text-red-400 transition-colors">{t("settings.reset_config")}</button>
@@ -1812,16 +2664,20 @@ export default function Dashboard() {
       case "Threat Feed": return <ThreatFeedView setActiveSection={setActiveSection} />;
       case "Scam Report Center": return <CommunityReportsView />;
       case "Learning Hub": return <LearningHubView />;
-      case "Scam Quiz Arena": return <ScamQuizArenaView />;
-      case "Settings": return <SettingsView />;
+      case "Scam Quiz Arena": return (
+        <QuizErrorBoundary>
+          <ScamQuizArenaView />
+        </QuizErrorBoundary>
+      );
+      case "Settings": return <SettingsView onLogout={handleLogout} />;
       default: return <DashboardView setActiveSection={setActiveSection} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex">
+    <div className="h-screen bg-black text-white flex overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-72 h-screen sticky top-0 border-r border-white/5 bg-black/40 backdrop-blur-2xl p-6">
+      <aside className="hidden lg:flex flex-col w-72 h-screen fixed left-0 top-0 border-r border-white/5 bg-black/40 backdrop-blur-2xl p-6 z-50">
         <div className="flex items-center gap-3 mb-10 px-2">
           <img src="/logo.png" alt="ScamShield Logo" className="size-10 object-contain" referrerPolicy="no-referrer" />
           <span className="text-xl font-black tracking-tighter uppercase">ScamShield</span>
@@ -1862,10 +2718,6 @@ export default function Dashboard() {
             <ArrowLeft className="size-5 group-hover:-translate-x-1 transition-transform" />
             <TextRoll className="font-bold text-sm tracking-wide">{t("common.back")}</TextRoll>
           </Link>
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-secondary hover:text-red-400 hover:bg-red-500/5 transition-all group">
-            <LogOut className="size-5 group-hover:translate-x-1 transition-transform" />
-            <TextRoll className="font-bold text-sm tracking-wide">{t("nav.logout")}</TextRoll>
-          </button>
         </div>
       </aside>
 
@@ -1943,7 +2795,7 @@ export default function Dashboard() {
       </AnimatePresence>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 min-h-screen overflow-y-auto no-scrollbar relative bg-black">
+      <main className="flex-1 min-w-0 lg:ml-72 h-full overflow-y-auto no-scrollbar relative bg-black">
         {/* Top Header */}
         <header className="sticky top-0 z-40 bg-black/80 backdrop-blur-md border-b border-white/5 px-6 md:px-10 py-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
