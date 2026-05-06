@@ -59,7 +59,10 @@ import {
   XCircle,
   Smartphone,
   Key,
-  Briefcase
+  Briefcase,
+  Cpu,
+  Globe,
+  Radio
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -486,8 +489,6 @@ LOGIC RULES:
           
           const parsed: ScanResult = JSON.parse(match[0]);
           
-          // ── Heuristic Validation Layer (Fallback) ──────────────────────────
-          // If AI says Safe/Medium but input has high-risk keywords, override it
           if ((parsed.verdict === "Safe" || parsed.risk === "Low" || parsed.risk === "Medium") && containsScamSignal(scanInput)) {
             parsed.verdict = "Suspicious";
             parsed.risk = parsed.risk === "Low" ? "Medium" : parsed.risk;
@@ -504,7 +505,7 @@ LOGIC RULES:
         } catch (err: any) {
           console.warn(`Model ${model} failed:`, err.message);
           lastError = err.message;
-          continue; // Try next model
+          continue; 
         }
       }
 
@@ -530,178 +531,227 @@ LOGIC RULES:
   const confBarColor = result?.verdict === "Safe" ? "bg-emerald-500" : result?.verdict === "Suspicious" ? "bg-orange-500" : "bg-red-500";
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="relative space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      {/* AI Atmosphere Visuals */}
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-[140px] animate-pulse" />
+        <div className="absolute bottom-1/4 left-0 w-[400px] h-[400px] bg-purple-600/5 rounded-full blur-[120px] animate-pulse delay-1000" />
+        <div className="absolute inset-0 bg-grid-white/[0.01] bg-[size:30px_30px]" />
+      </div>
+
       <SectionHeader title={t("scanner.title")} subtitle={t("scanner.subtitle")} />
 
-      <div className="grid grid-cols-1 gap-8">
+      <div className="grid grid-cols-1 gap-8 relative z-10">
 
-        {/* Scan Type Pills */}
-        <div className="flex flex-wrap gap-2">
+        {/* Enhanced Scan Type Tabs */}
+        <div className="flex flex-wrap gap-3">
           {SCAN_TYPES.map(({ key, label, Icon }) => (
             <button key={key} onClick={() => setScanType(key)}
-              className={cn("flex items-center gap-2 px-5 py-2.5 rounded-xl border text-[11px] font-black uppercase tracking-widest transition-all",
+              className={cn("flex items-center gap-2.5 px-6 py-3 rounded-2xl border text-[10px] font-black uppercase tracking-[0.2em] transition-all relative overflow-hidden group",
                 scanType === key
-                  ? "bg-blue-600 text-white border-blue-500 shadow-[0_8px_20px_rgba(37,99,235,0.25)]"
-                  : "bg-white/5 text-white/40 border-white/5 hover:bg-white/10 hover:text-white"
+                  ? "bg-white text-black border-white shadow-[0_10px_30px_rgba(255,255,255,0.2)]"
+                  : "bg-white/[0.02] text-white/40 border-white/5 hover:border-white/20 hover:text-white"
               )}>
-              <Icon className="size-3" /> {label}
+              <Icon className={cn("size-3.5 transition-transform group-hover:scale-110", scanType === key ? "text-black" : "text-blue-400")} />
+              {label}
+              {scanType === key && (
+                <motion.div layoutId="scanner-tab-glow" className="absolute inset-0 bg-white/10 blur-xl pointer-events-none" />
+              )}
             </button>
           ))}
         </div>
 
-        {/* Input Card */}
-        <Card className="p-8 md:p-12 rounded-[3rem] border-blue-500/10 bg-blue-500/[0.02] relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
-            <Bot className="size-32" />
-          </div>
-          <div className="max-w-4xl mx-auto space-y-8 relative z-10">
-            <div className="space-y-3">
-              <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-400 ml-1">
-                {t("scanner.input_label")}
-              </Label>
-              <textarea
-                value={scanInput}
-                onChange={(e) => setScanInput(e.target.value)}
-                onKeyDown={(e) => { if (e.ctrlKey && e.key === "Enter") handleScan(); }}
-                placeholder={
-                  scanType === "url"     ? "Paste a suspicious URL or link here..." :
-                  scanType === "email"   ? "Paste the full email content here..." :
-                  scanType === "job"     ? "Paste the job offer message here..." :
-                  "Paste the suspicious SMS, WhatsApp message, or chat text here..."
-                }
-                className="w-full h-48 bg-white/[0.03] border border-white/5 rounded-[2rem] p-8 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/30 transition-all resize-none font-medium leading-relaxed text-sm"
+        {/* Premium Scanner Card */}
+        <Card className="p-1 md:p-1 rounded-[3.5rem] bg-gradient-to-br from-white/10 via-transparent to-transparent border-white/5 overflow-hidden shadow-2xl relative group">
+           <div className="p-8 md:p-12 rounded-[3.4rem] bg-[#0A0A0B]/90 backdrop-blur-3xl space-y-8 relative overflow-hidden">
+              {/* Animated Scan Line */}
+              <motion.div 
+                animate={{ top: ["0%", "100%", "0%"] }}
+                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-blue-500/20 to-transparent pointer-events-none z-0" 
               />
-              <p className="text-[10px] text-white/20 ml-1">Ctrl + Enter to scan</p>
-            </div>
-            <div className="flex items-center gap-4 flex-wrap">
-              <Button onClick={handleScan} disabled={scanning || !scanInput.trim()}
-                className="h-14 px-12 rounded-2xl bg-white text-black font-bold uppercase tracking-widest text-[11px] hover:bg-white/90 disabled:opacity-50 gap-3 transition-all">
-                {scanning
-                  ? <><RefreshCcw className="size-4 animate-spin" /> Analysing…</>
-                  : <><ShieldCheck className="size-4" /> {t("scanner.run_scan")}</>}
-              </Button>
-              {result && (
-                <Button variant="outline" onClick={() => { setResult(null); setScanInput(""); setScanError(null); }}
-                  className="h-14 px-8 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white text-[11px] font-bold uppercase tracking-widest">
-                  Clear
-                </Button>
-              )}
-              {/* Model badge */}
-              <span className="ml-auto text-[9px] font-black uppercase tracking-widest text-white/20 flex items-center gap-1.5">
-                <Bot className="size-3" /> AI via OpenRouter
-              </span>
-            </div>
-          </div>
+
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-10 transition-opacity pointer-events-none duration-700">
+                <Bot className="size-64" />
+              </div>
+              
+              <div className="max-w-4xl mx-auto space-y-8 relative z-10">
+                <div className="space-y-4 group/field">
+                  <div className="flex items-center justify-between px-2">
+                    <Label className="text-[11px] font-black uppercase tracking-[0.4em] text-blue-400/60 group-focus-within/field:text-blue-400 transition-colors">
+                      {t("scanner.input_label")}
+                    </Label>
+                    <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Neural Mode: Active</span>
+                  </div>
+                  
+                  <div className="relative group/textarea">
+                    <textarea
+                      value={scanInput}
+                      onChange={(e) => setScanInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.ctrlKey && e.key === "Enter") handleScan(); }}
+                      placeholder={
+                        scanType === "url"     ? "Paste a suspicious URL or link here..." :
+                        scanType === "email"   ? "Paste the full email content here..." :
+                        scanType === "job"     ? "Paste the job offer message here..." :
+                        "Paste the suspicious SMS, WhatsApp message, or chat text here..."
+                      }
+                      className="w-full h-56 bg-white/[0.02] border-2 border-white/5 rounded-[2.5rem] p-10 text-white placeholder:text-white/10 focus:outline-none focus:border-blue-500/40 focus:ring-4 focus:ring-blue-500/5 transition-all resize-none font-medium leading-relaxed text-sm shadow-inner group-focus-within/textarea:bg-white/[0.04]"
+                    />
+                    <div className="absolute bottom-8 right-10 flex items-center gap-3">
+                       <div className="flex gap-1">
+                          {[1,2,3].map(i => <div key={i} className="size-1 rounded-full bg-blue-500/20 animate-pulse" style={{ animationDelay: `${i * 200}ms` }} />)}
+                       </div>
+                       <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Ctrl + Enter</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                  <Button onClick={handleScan} disabled={scanning || !scanInput.trim()}
+                    className="w-full md:w-auto h-20 px-16 rounded-[2rem] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black uppercase tracking-[0.3em] text-xs disabled:opacity-50 gap-4 transition-all shadow-[0_20px_50px_rgba(37,99,235,0.3)] group/btn relative overflow-hidden">
+                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500" />
+                    {scanning
+                      ? <><RefreshCcw className="size-5 animate-spin" /> {t("scanner.scanning")}</>
+                      : <><ShieldCheck className="size-5" /> {t("scanner.run_scan")}</>}
+                  </Button>
+
+                  {result && (
+                    <Button variant="outline" onClick={() => { setResult(null); setScanInput(""); setScanError(null); }}
+                      className="h-16 px-10 rounded-[1.5rem] border-white/10 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-[0.2em] transition-all">
+                      Reset
+                    </Button>
+                  )}
+
+                  <div className="md:ml-auto flex items-center gap-4 py-4 px-6 rounded-2xl bg-white/[0.03] border border-white/5">
+                    <div className="flex -space-x-2">
+                       {OPENROUTER_MODELS.slice(0, 3).map((_, i) => (
+                         <div key={i} className="size-6 rounded-full border-2 border-[#0A0A0B] bg-blue-500/20 flex items-center justify-center">
+                            <Bot className="size-3 text-blue-400" />
+                         </div>
+                       ))}
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">
+                      Multi-Model Consensus Enabled
+                    </span>
+                  </div>
+                </div>
+              </div>
+           </div>
         </Card>
 
         {/* Error Banner */}
         {scanError && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="p-6 rounded-[2rem] border border-red-500/20 bg-red-500/10 text-red-400 font-bold text-sm flex items-start gap-3">
-            <ShieldAlert className="size-5 shrink-0 mt-0.5" />
-            <span>{scanError}</span>
+            className="p-8 rounded-[2.5rem] border-2 border-red-500/20 bg-red-500/5 text-red-400 font-bold text-sm flex items-start gap-4 shadow-[0_0_40px_rgba(239,68,68,0.05)] backdrop-blur-xl">
+            <ShieldAlert className="size-6 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+               <p className="font-black uppercase tracking-widest text-[10px] text-red-500/60 mb-2">Scan Interrupted</p>
+               <p className="leading-relaxed">{scanError}</p>
+            </div>
           </motion.div>
         )}
 
         {/* ── Results Card ── */}
         {result && vcfg && (
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: "easeOut" }}>
-            <Card className={cn("p-8 md:p-12 rounded-[3rem] border-2 transition-all", vcfg.border, vcfg.bg, vcfg.glow)}>
-              <div className="space-y-10">
-
-                {/* ── Header: Verdict + Risk + Confidence ── */}
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
-
-                  {/* Left: Icon + Verdict */}
-                  <div className="flex items-center gap-6">
-                    <div className={cn("size-24 rounded-[2rem] flex items-center justify-center border-2 shadow-lg", vcfg.bg, vcfg.border)}>
-                      <vcfg.Icon className={cn("size-12", vcfg.color)} />
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "circOut" }}>
+            <Card className={cn("p-1 rounded-[4rem] transition-all duration-1000 overflow-hidden", vcfg.glow)}>
+               <div className={cn("p-10 md:p-16 rounded-[3.9rem] border-2 transition-all duration-700 space-y-12 bg-[#0A0A0B]/80 backdrop-blur-3xl", vcfg.border)}>
+                  {/* Result Content */}
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-12">
+                    <div className="flex items-center gap-10">
+                      <div className={cn("size-32 rounded-[3rem] flex items-center justify-center border-2 shadow-2xl relative group/res", vcfg.bg, vcfg.border)}>
+                        <div className={cn("absolute inset-0 rounded-[3rem] blur-2xl opacity-40 group-hover/res:opacity-70 transition-opacity", vcfg.bg)} />
+                        <vcfg.Icon className={cn("size-16 relative z-10", vcfg.color)} />
+                      </div>
+                      <div className="space-y-3">
+                        <p className="text-[11px] font-black uppercase tracking-[0.5em] text-white/30">AI Final Verdict</p>
+                        <h2 className={cn("text-6xl md:text-8xl font-black tracking-tighter uppercase leading-none", vcfg.color)}>
+                          {vcfg.label}
+                        </h2>
+                        <div className="flex items-center gap-3">
+                          <span className={cn("inline-flex items-center px-4 py-1.5 rounded-full border text-[11px] font-black uppercase tracking-widest", RISK_PILL[result.risk] || RISK_PILL.Medium)}>
+                            Risk Severity: {result.risk}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30">AI Verdict</p>
-                      <h2 className={cn("text-5xl md:text-6xl font-black tracking-tighter uppercase leading-none", vcfg.color)}>
-                        {vcfg.label}
-                      </h2>
-                      {/* Risk Level Pill */}
-                      <span className={cn("inline-flex items-center px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest mt-1", RISK_PILL[result.risk] || RISK_PILL.Medium)}>
-                        Risk: {result.risk}
-                      </span>
+
+                    <div className="space-y-4 min-w-[280px] w-full md:w-auto p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5">
+                      <div className="flex justify-between items-center mb-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Detection Precision</p>
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
+                          className={cn("text-3xl font-black", vcfg.color)}>
+                          {result.confidence}
+                        </motion.p>
+                      </div>
+                      <div className="h-4 bg-white/5 rounded-full overflow-hidden p-1 border border-white/5">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${confNum}%` }}
+                          transition={{ duration: 1.5, ease: "circOut", delay: 0.5 }}
+                          className={cn("h-full rounded-full shadow-[0_0_15px_rgba(255,255,255,0.2)]", confBarColor)}
+                        />
+                      </div>
+                      <div className="flex justify-between mt-2">
+                         <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Heuristic</span>
+                         <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Neural</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Right: Confidence Meter */}
-                  <div className="space-y-3 min-w-[200px] w-full md:w-auto">
-                    <div className="flex justify-between items-center">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-white/30">AI Confidence</p>
-                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-                        className={cn("text-2xl font-black", vcfg.color)}>
-                        {result.confidence}
-                      </motion.p>
+                  <div className="p-10 rounded-[3rem] bg-white/[0.02] border border-white/5 space-y-4 relative overflow-hidden group/expl">
+                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover/expl:opacity-10 transition-opacity">
+                       <Brain className="size-32" />
                     </div>
-                    <div className="h-3 bg-white/5 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${confNum}%` }}
-                        transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
-                        className={cn("h-full rounded-full", confBarColor)}
-                      />
-                    </div>
-                    <p className="text-[9px] text-white/20 font-bold uppercase tracking-widest">Powered by OpenRouter AI</p>
-                  </div>
-                </div>
-
-                {/* ── Explanation ── */}
-                <div className="p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 space-y-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-white/30 flex items-center gap-2">
-                    <Bot className="size-3" /> AI Explanation
-                  </p>
-                  <p className="text-white/80 leading-relaxed font-medium text-sm">{result.explanation}</p>
-                  {result.verdict === "Safe" && (
-                    <p className="text-[10px] font-bold text-emerald-400/60 mt-4 pt-4 border-t border-white/5 flex items-center gap-2">
-                      <ShieldCheck className="size-3" /> Note: While this appears safe, always verify through official channels before sharing sensitive info.
+                    <p className="text-[11px] font-black uppercase tracking-widest text-blue-400 flex items-center gap-3">
+                      <Bot className="size-4" /> Neural Analysis Summary
                     </p>
-                  )}
-                </div>
-
-                {/* ── Red Flags + Recommendation ── */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                  {/* Red Flags */}
-                  <div className="p-8 rounded-[2rem] bg-red-500/5 border border-red-500/10 space-y-4">
-                    <h4 className="text-red-400 font-bold text-sm flex items-center gap-2">
-                      <ShieldAlert className="size-4" />
-                      Red Flags Detected
-                      {result.redFlags.length > 0 && (
-                        <span className="ml-auto text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-black">{result.redFlags.length}</span>
-                      )}
-                    </h4>
-                    {result.redFlags.length > 0 ? (
-                      <ul className="space-y-2">
-                        {result.redFlags.map((flag, i) => (
-                          <motion.li key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + i * 0.08 }}
-                            className="text-xs text-white/70 flex items-start gap-3">
-                            <span className="size-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
-                            {flag}
-                          </motion.li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-xs text-emerald-400/60 flex items-center gap-2">
-                        <ShieldCheck className="size-3" /> No red flags detected.
-                      </p>
-                    )}
+                    <p className="text-white/80 leading-relaxed font-medium text-lg max-w-5xl">{result.explanation}</p>
                   </div>
 
-                  {/* Recommendation */}
-                  <div className="p-8 rounded-[2rem] bg-emerald-500/5 border border-emerald-500/10 space-y-4">
-                    <h4 className="text-emerald-400 font-bold text-sm flex items-center gap-2">
-                      <ShieldCheck className="size-4" /> Safety Recommendation
-                    </h4>
-                    <p className="text-xs text-white/70 leading-relaxed">{result.recommendation}</p>
-                  </div>
-                </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="p-10 rounded-[3rem] bg-red-500/[0.03] border border-red-500/10 space-y-6">
+                      <h4 className="text-red-500 font-black text-sm uppercase tracking-widest flex items-center gap-3">
+                        <ShieldAlert className="size-5" /> Threat Indicators
+                      </h4>
+                      <div className="space-y-4">
+                        {result.redFlags.length > 0 ? (
+                          result.redFlags.map((flag, i) => (
+                            <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 + i * 0.1 }}
+                              className="flex items-start gap-4 p-4 rounded-2xl bg-red-500/5 border border-red-500/5 group/flag">
+                              <div className="size-2 rounded-full bg-red-500 mt-2 shrink-0 animate-pulse" />
+                              <p className="text-xs text-white/70 font-medium leading-relaxed group-hover/flag:text-white transition-colors">{flag}</p>
+                            </motion.div>
+                          ))
+                        ) : (
+                          <div className="flex items-center gap-4 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/5">
+                             <ShieldCheck className="size-5 text-emerald-400" />
+                             <p className="text-xs text-emerald-400/60 font-black uppercase tracking-widest">No anomalies detected</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-              </div>
+                    <div className="p-10 rounded-[3rem] bg-emerald-500/[0.03] border border-emerald-500/10 space-y-6">
+                      <h4 className="text-emerald-400 font-black text-sm uppercase tracking-widest flex items-center gap-3">
+                        <ShieldCheck className="size-5" /> Countermeasures
+                      </h4>
+                      <div className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/5">
+                         <p className="text-sm text-white/80 font-medium leading-relaxed italic">
+                           "{result.recommendation}"
+                         </p>
+                      </div>
+                      <div className="space-y-2 pt-4">
+                         <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] mb-3">Next Defensive Actions:</p>
+                         <div className="flex flex-wrap gap-2">
+                            {["Block Sender", "Report Scam", "Secure Account"].map(a => (
+                              <span key={a} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest">{a}</span>
+                            ))}
+                         </div>
+                      </div>
+                    </div>
+                  </div>
+               </div>
             </Card>
           </motion.div>
         )}
@@ -1072,14 +1122,10 @@ const CommunityReportsView = () => {
         evidence_url: formData.evidence_url,
         created_at: new Date().toISOString()
       });
-      if (error) {
-        console.error("Supabase Error Details:", error);
-        throw error;
-      }
+      if (error) throw error;
       alert(t("reports.success"));
       setFormData({ scam_type: "", platform: "", incident_title: "", description: "", severity: "high", evidence_url: "" });
     } catch (e: any) { 
-      console.error("Full Submission Error Detail:", e);
       alert(t("reports.error") + (e.message ? ": " + e.message : ""));
     } finally { 
       setSubmitting(false); 
@@ -1087,106 +1133,174 @@ const CommunityReportsView = () => {
   };
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <SectionHeader 
-        title={t("reports.title")}
-        subtitle={t("reports.subtitle")}
-      />
+    <div className="relative space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      {/* Background Visual Elements */}
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[100px] animate-pulse delay-700" />
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-500/[0.02] via-transparent to-red-500/[0.01]" />
+      </div>
 
-      <div className="grid grid-cols-1 gap-8">
-        <Card className="p-8 md:p-12 rounded-[3rem] border-white/5 bg-white/[0.01] relative overflow-hidden group">
-           <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-              <Flag className="size-32" />
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* Left Info Panel / Banner */}
+        <div className="lg:w-1/3 space-y-6">
+           <div className="p-8 rounded-[3rem] bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/10 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
+              <div className="relative z-10 space-y-6">
+                 <div className="size-14 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20 shadow-inner">
+                    <Radio className="size-7 text-blue-400 animate-pulse" />
+                 </div>
+                 <div className="space-y-2">
+                    <h2 className="text-3xl font-black text-white tracking-tighter uppercase leading-tight">
+                      Community<br />Intelligence
+                    </h2>
+                    <p className="text-sm text-white/40 font-medium leading-relaxed">
+                      Your report feeds into our live threat detection engine, protecting thousands of users in real-time.
+                    </p>
+                 </div>
+                 <div className="flex flex-wrap gap-2">
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1.5">
+                       <ShieldCheck className="size-3" /> Live Shield Active
+                    </span>
+                    <span className="px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-[9px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1.5">
+                       <Activity className="size-3" /> Global Alerts
+                    </span>
+                 </div>
+              </div>
+              <div className="absolute -bottom-12 -right-12 opacity-5 group-hover:scale-110 transition-transform duration-700">
+                 <Globe className="size-48" />
+              </div>
            </div>
-           
-           <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8 relative z-10">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                 <div className="space-y-4">
-                    <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">{t("reports.form.type")}</Label>
-                    <Input 
-                      required
-                      value={formData.scam_type}
-                      onChange={(e) => setFormData({...formData, scam_type: e.target.value})}
-                      placeholder={t("reports.form.type_placeholder")}
-                      className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-6 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/30 transition-all"
-                    />
-                 </div>
-                 <div className="space-y-4">
-                    <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">{t("reports.form.platform")}</Label>
-                    <Input 
-                      required
-                      value={formData.platform}
-                      onChange={(e) => setFormData({...formData, platform: e.target.value})}
-                      placeholder={t("reports.form.platform_placeholder")}
-                      className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-6 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/30 transition-all"
-                    />
-                 </div>
-              </div>
 
+           <Card className="p-8 rounded-[2.5rem] border-white/5 bg-white/[0.01] space-y-4">
+              <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em]">System Status</h4>
               <div className="space-y-4">
-                 <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">{t("reports.form.title")}</Label>
-                 <Input 
-                   required
-                   value={formData.incident_title}
-                   onChange={(e) => setFormData({...formData, incident_title: e.target.value})}
-                   placeholder={t("reports.form.title_placeholder")}
-                   className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-6 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/30 transition-all"
-                 />
+                 {[
+                   { label: "Scanner Online", status: "Active", icon: Cpu, color: "text-emerald-400" },
+                   { label: "Network Analysis", status: "Running", icon: Activity, color: "text-blue-400" },
+                   { label: "Fraud Database", status: "Synced", icon: ListChecks, color: "text-purple-400" },
+                 ].map((s, i) => (
+                   <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                      <div className="flex items-center gap-3">
+                         <s.icon className={cn("size-4", s.color)} />
+                         <span className="text-xs font-bold text-white/60">{s.label}</span>
+                      </div>
+                      <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">{s.status}</span>
+                   </div>
+                 ))}
               </div>
+           </Card>
+        </div>
 
-              <div className="space-y-4">
-                 <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">{t("reports.form.description")}</Label>
-                 <textarea 
-                   required
-                   value={formData.description}
-                   onChange={(e) => setFormData({...formData, description: e.target.value})}
-                   placeholder={t("reports.form.description_placeholder")}
-                   className="w-full h-40 bg-white/[0.03] border-white/5 rounded-[2rem] p-6 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/30 transition-all resize-none font-medium leading-relaxed"
-                 />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">{t("reports.form.severity")}</Label>
-                  <select 
-                    value={formData.severity}
-                    onChange={(e) => setFormData({...formData, severity: e.target.value})}
-                    className="w-full h-14 bg-white/[0.03] border-white/5 rounded-2xl px-6 text-white focus:outline-none focus:border-blue-500/30 transition-all appearance-none"
-                  >
-                    <option value="low" className="bg-[#0A0A0B] text-white">{t("reports.form.severity_low")}</option>
-                    <option value="medium" className="bg-[#0A0A0B] text-white">{t("reports.form.severity_medium")}</option>
-                    <option value="high" className="bg-[#0A0A0B] text-white">{t("reports.form.severity_high")}</option>
-                    <option value="critical" className="bg-[#0A0A0B] text-white">{t("reports.form.severity_critical")}</option>
-                  </select>
+        {/* Right Form Panel */}
+        <div className="flex-1 w-full">
+          <Card className="p-8 md:p-12 rounded-[3.5rem] border-white/10 bg-white/[0.01] backdrop-blur-3xl relative overflow-hidden group shadow-2xl">
+             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
+                <ShieldAlert className="size-48" />
+             </div>
+             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
+             
+             <form onSubmit={handleSubmit} className="space-y-10 relative z-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   <div className="space-y-3 group/field">
+                      <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-white/30 ml-2 group-focus-within/field:text-blue-400 transition-colors">{t("reports.form.type")}</Label>
+                      <div className="relative">
+                        <Input 
+                          required
+                          value={formData.scam_type}
+                          onChange={(e) => setFormData({...formData, scam_type: e.target.value})}
+                          placeholder="e.g. WhatsApp Phishing"
+                          className="h-16 bg-white/[0.03] border-white/10 rounded-2xl px-6 text-white placeholder:text-white/10 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40 transition-all text-sm font-medium"
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
+                          <AlertTriangle className="size-5" />
+                        </div>
+                      </div>
+                   </div>
+                   <div className="space-y-3 group/field">
+                      <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-white/30 ml-2 group-focus-within/field:text-cyan-400 transition-colors">{t("reports.form.platform")}</Label>
+                      <Input 
+                        required
+                        value={formData.platform}
+                        onChange={(e) => setFormData({...formData, platform: e.target.value})}
+                        placeholder="e.g. Telegram / SMS"
+                        className="h-16 bg-white/[0.03] border-white/10 rounded-2xl px-6 text-white placeholder:text-white/10 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500/40 transition-all text-sm font-medium"
+                      />
+                   </div>
                 </div>
-                <div className="space-y-4">
-                   <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40 ml-1">{t("reports.form.evidence")}</Label>
+
+                <div className="space-y-3 group/field">
+                   <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-white/30 ml-2 group-focus-within/field:text-purple-400 transition-colors">{t("reports.form.title")}</Label>
                    <Input 
-                     value={formData.evidence_url}
-                     onChange={(e) => setFormData({...formData, evidence_url: e.target.value})}
-                     placeholder={t("reports.form.evidence_placeholder")}
-                     className="h-14 bg-white/[0.03] border-white/5 rounded-2xl px-6 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/30 transition-all"
+                     required
+                     value={formData.incident_title}
+                     onChange={(e) => setFormData({...formData, incident_title: e.target.value})}
+                     placeholder={t("reports.form.title_placeholder")}
+                     className="h-16 bg-white/[0.03] border-white/10 rounded-2xl px-6 text-white placeholder:text-white/10 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/40 transition-all text-sm font-medium"
                    />
                 </div>
-              </div>
 
-              <Button 
-                type="submit"
-                disabled={submitting}
-                className="w-full md:w-auto h-16 px-12 rounded-2xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] disabled:opacity-50"
-              >
-                {submitting ? (
-                  <div className="flex items-center gap-3">
-                     <RefreshCcw className="size-5 animate-spin" /> {t("reports.form.submitting")}
+                <div className="space-y-3 group/field">
+                   <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-white/30 ml-2 group-focus-within/field:text-red-400 transition-colors">{t("reports.form.description")}</Label>
+                   <textarea 
+                     required
+                     value={formData.description}
+                     onChange={(e) => setFormData({...formData, description: e.target.value})}
+                     placeholder={t("reports.form.description_placeholder")}
+                     className="w-full h-44 bg-white/[0.03] border-white/10 rounded-[2.5rem] p-8 text-white placeholder:text-white/10 focus:ring-2 focus:ring-red-500/20 focus:border-red-500/40 transition-all resize-none font-medium leading-relaxed text-sm scrollbar-hide"
+                   />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3 group/field">
+                    <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-white/30 ml-2 group-focus-within/field:text-orange-400 transition-colors">{t("reports.form.severity")}</Label>
+                    <div className="relative">
+                      <select 
+                        value={formData.severity}
+                        onChange={(e) => setFormData({...formData, severity: e.target.value})}
+                        className="w-full h-16 bg-white/[0.03] border-white/10 rounded-2xl px-6 text-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500/40 transition-all appearance-none text-sm font-medium cursor-pointer"
+                      >
+                        <option value="low" className="bg-[#0A0A0B] text-white">{t("reports.form.severity_low")}</option>
+                        <option value="medium" className="bg-[#0A0A0B] text-white">{t("reports.form.severity_medium")}</option>
+                        <option value="high" className="bg-[#0A0A0B] text-white">{t("reports.form.severity_high")}</option>
+                        <option value="critical" className="bg-[#0A0A0B] text-white">{t("reports.form.severity_critical")}</option>
+                      </select>
+                      <ChevronRight className="absolute right-6 top-1/2 -translate-y-1/2 rotate-90 size-4 text-white/20 pointer-events-none" />
+                    </div>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-                     {t("reports.form.submit")} <Send className="size-5" />
+                  <div className="space-y-3 group/field">
+                     <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-white/30 ml-2 group-focus-within/field:text-blue-400 transition-colors">{t("reports.form.evidence")}</Label>
+                     <Input 
+                       value={formData.evidence_url}
+                       onChange={(e) => setFormData({...formData, evidence_url: e.target.value})}
+                       placeholder="https://..."
+                       className="h-16 bg-white/[0.03] border-white/10 rounded-2xl px-6 text-white placeholder:text-white/10 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40 transition-all text-sm font-medium"
+                     />
                   </div>
-                )}
-              </Button>
-           </form>
-        </Card>
+                </div>
+
+                <Button 
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full h-20 rounded-[2rem] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black uppercase tracking-[0.3em] transition-all shadow-[0_20px_50px_rgba(37,99,235,0.2)] disabled:opacity-50 group/btn overflow-hidden relative"
+                >
+                  <div className="absolute inset-0 bg-white/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500" />
+                  <div className="relative z-10 flex items-center justify-center gap-4">
+                    {submitting ? (
+                      <>
+                         <RefreshCcw className="size-6 animate-spin" /> {t("reports.form.submitting")}
+                      </>
+                    ) : (
+                      <>
+                         {t("reports.form.submit")} <Send className="size-6 group-hover/btn:translate-x-2 group-hover/btn:-translate-y-2 transition-transform duration-500" />
+                      </>
+                    )}
+                  </div>
+                </Button>
+             </form>
+          </Card>
+        </div>
       </div>
     </div>
   );
