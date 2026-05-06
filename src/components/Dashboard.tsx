@@ -560,7 +560,9 @@ const ScamScannerView = () => {
 
   const loadHistoryItem = (item: any) => {
     setScanType(item.scan_type as any);
-    setScanInput(item.input_text || "");
+    setScanInput(item.input_text || item.ocr_text || "");
+    setSelectedImage(null);
+    setImagePreview(null);
     setResult({
       verdict: item.verdict,
       risk: item.risk,
@@ -867,7 +869,7 @@ LOGIC RULES:
                   
                   {scanType === "image" ? (
                     <div className="space-y-6">
-                      {!imagePreview ? (
+                      {(!imagePreview && !result) ? (
                         <div className="relative group/upload">
                           <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
                           <div className="w-full h-56 border-2 border-dashed border-white/10 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 bg-white/[0.01] group-hover/upload:bg-white/[0.03] group-hover/upload:border-blue-500/30 transition-all">
@@ -883,8 +885,15 @@ LOGIC RULES:
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {/* Image Preview with Scan Overlay */}
-                          <div className="relative rounded-[2.5rem] overflow-hidden border-2 border-white/5 bg-black/40 group/preview h-64">
-                             <img src={imagePreview} alt="Scan Target" className="w-full h-full object-contain" />
+                          <div className="relative rounded-[2.5rem] overflow-hidden border-2 border-white/5 bg-black/40 group/preview h-64 flex items-center justify-center">
+                             {imagePreview ? (
+                               <img src={imagePreview} alt="Scan Target" className="w-full h-full object-contain" />
+                             ) : (
+                               <div className="flex flex-col items-center gap-3 opacity-40">
+                                 <ImageIcon className="size-10" />
+                                 <span className="text-[10px] font-black uppercase tracking-widest text-center px-4 max-w-[200px]">Original image not saved in history</span>
+                               </div>
+                             )}
                              
                              {/* Cyber Scan Overlay */}
                              {(isOcrRunning || scanning) && (
