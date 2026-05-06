@@ -103,7 +103,7 @@ export default function AddItemPage() {
       toast({
         title: "Limit Exceeded",
         message: "You can only upload up to 5 screenshots.",
-        variant: "destructive"
+        variant: "error"
       });
       return;
     }
@@ -132,7 +132,7 @@ export default function AddItemPage() {
       toast({
         title: "Missing Information",
         message: "Please provide a title and detailed description of the incident.",
-        variant: "destructive"
+        variant: "error"
       });
       return;
     }
@@ -141,7 +141,7 @@ export default function AddItemPage() {
       toast({
         title: "Authentication Required",
         message: "Please log in to submit a report.",
-        variant: "destructive"
+        variant: "error"
       });
       return;
     }
@@ -206,7 +206,7 @@ export default function AddItemPage() {
       toast({
         title: "Submission Failed",
         message: error.message || "An error occurred while submitting your report.",
-        variant: "destructive"
+        variant: "error"
       });
     } finally {
       setIsUploading(false);

@@ -64,7 +64,8 @@ import {
   Globe,
   Radio,
   Camera,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Trash2
 } from "lucide-react";
 import { createWorker } from 'tesseract.js';
 import { Link, useNavigate } from "react-router-dom";
@@ -419,6 +420,158 @@ const ScamScannerView = () => {
   const [ocrProgress, setOcrProgress] = useState(0);
   const [ocrStatus, setOcrStatus] = useState("");
   const [isOcrRunning, setIsOcrRunning] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  // History States
+  const [scanHistory, setScanHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchScanHistory();
+    } else {
+      setLoadingHistory(false);
+    }
+  }, [user]);
+
+  const fetchScanHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from('scan_history')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("DEBUG: Supabase Fetch Error:", error);
+        throw error;
+      }
+      console.log("DEBUG: Supabase Fetch Success:", data?.length, "items retrieved.");
+      setScanHistory(data || []);
+    } catch (err: any) {
+      console.error("Error fetching history:", err.message);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const saveToHistory = async (scanResult: ScanResult, input: string, ocrText?: string, specificType?: string) => {
+    console.log("DEBUG: saveToHistory triggered", { scanResult, input, ocrText, specificType, user });
+    
+    if (!user) {
+      console.warn("DEBUG: No authenticated user found, skipping history save.");
+      return;
+    }
+
+    const payload = {
+      user_id: user.id,
+      scan_type: specificType || scanType,
+      input_text: input,
+      ocr_text: ocrText,
+      verdict: scanResult.verdict,
+      risk: scanResult.risk,
+      confidence: scanResult.confidence,
+      red_flags: scanResult.redFlags,
+      explanation: scanResult.explanation,
+      recommendation: scanResult.recommendation
+    };
+
+    console.log("DEBUG: Supabase Insert Payload:", payload);
+
+    try {
+      const { data, error } = await supabase
+        .from('scan_history')
+        .insert(payload)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("DEBUG: Supabase Insert Error:", error);
+        throw error;
+      }
+
+      console.log("DEBUG: Supabase Insert Success:", data);
+      
+      // Optimistic update
+      if (data) {
+        setScanHistory(prev => [data, ...prev]);
+      } else {
+        fetchScanHistory();
+      }
+
+      toast({
+        title: "Scan Archived",
+        message: "Investigation has been saved to your history.",
+        variant: "success"
+      });
+    } catch (err: any) {
+      console.error("Error saving to history:", err.message);
+      toast({
+        title: "Persistence Failed",
+        message: "Could not save scan to history. Check console for details.",
+        variant: "error"
+      });
+    }
+  };
+
+  const deleteHistoryItem = async (id: string) => {
+    try {
+      const { error } = await supabase.from('scan_history').delete().eq('id', id);
+      if (error) throw error;
+      setScanHistory(prev => prev.filter(item => item.id !== id));
+      toast({
+        title: "Record Deleted",
+        message: "The scan record has been removed from history.",
+        variant: "success"
+      });
+    } catch (err: any) {
+      console.error("Error deleting item:", err.message);
+      toast({
+        title: "Delete Failed",
+        message: err.message,
+        variant: "error"
+      });
+    }
+  };
+
+  const clearHistory = async () => {
+    if (!user) return;
+    try {
+      const { error } = await supabase.from('scan_history').delete().eq('user_id', user.id);
+      if (error) throw error;
+      setScanHistory([]);
+      setShowClearConfirm(false);
+      toast({
+        title: "History Cleared",
+        message: "Your investigation history has been wiped.",
+        variant: "success"
+      });
+    } catch (err: any) {
+      console.error("Error clearing history:", err.message);
+      toast({
+        title: "Clear Failed",
+        message: err.message,
+        variant: "error"
+      });
+    }
+  };
+
+  const loadHistoryItem = (item: any) => {
+    setScanType(item.scan_type as any);
+    setScanInput(item.input_text || "");
+    setResult({
+      verdict: item.verdict,
+      risk: item.risk,
+      confidence: item.confidence,
+      redFlags: item.red_flags,
+      explanation: item.explanation,
+      recommendation: item.recommendation
+    });
+    // Scroll to results
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const SCAN_TYPES = [
     { key: "message" as const, label: "Message / SMS",   Icon: MessageSquare },
@@ -625,6 +778,7 @@ LOGIC RULES:
 
           parsed.verdict = (parsed.verdict as string).charAt(0).toUpperCase() + (parsed.verdict as string).slice(1).toLowerCase() as ScanResult["verdict"];
           setResult(parsed);
+          await saveToHistory(parsed, scanType === "image" ? "" : textToScan, scanType === "image" ? textToScan : undefined, scanType);
           success = true;
           break;
         } catch (err: any) {
@@ -962,6 +1116,153 @@ LOGIC RULES:
           </motion.div>
         )}
 
+        {/* ── Investigation History ── */}
+        <div className="mt-24 space-y-10">
+          <div className="flex items-center justify-between px-4">
+             <div className="flex items-center gap-4">
+                <div className="size-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                   <Clock className="size-6 text-blue-400" />
+                </div>
+                <div>
+                   <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Investigation History</h3>
+                   <p className="text-xs text-white/40 font-medium">Persistent records of your AI neural scans</p>
+                </div>
+             </div>
+             {scanHistory.length > 0 && (
+               <Button 
+                 variant="ghost" 
+                 onClick={() => setShowClearConfirm(true)}
+                 className="text-red-400/60 hover:text-red-400 hover:bg-red-400/10 gap-2 font-black uppercase tracking-widest text-[10px]"
+               >
+                 <Trash2 className="size-4" />
+                 Clear All
+               </Button>
+             )}
+          </div>
+
+          {loadingHistory ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1,2,3].map(i => (
+                <div key={i} className="h-48 rounded-[2.5rem] bg-white/[0.02] border border-white/5 animate-pulse" />
+              ))}
+            </div>
+          ) : scanHistory.length === 0 ? (
+            <div className="p-20 rounded-[3.5rem] bg-white/[0.02] border border-dashed border-white/5 flex flex-col items-center justify-center text-center space-y-6">
+               <div className="size-20 rounded-3xl bg-white/[0.02] flex items-center justify-center border border-white/5 opacity-50">
+                  <History className="size-10 text-white/20" />
+               </div>
+               <div className="space-y-2">
+                  <p className="text-lg font-bold text-white/40">No Investigations Yet</p>
+                  <p className="text-xs text-white/20 max-w-xs leading-relaxed uppercase tracking-widest">Your future investigation results will be archived here for deep analysis</p>
+               </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <AnimatePresence mode="popLayout">
+                {scanHistory.map((item) => {
+                  const typeIcon = SCAN_TYPES.find(t => t.key === item.scan_type)?.Icon || MessageSquare;
+                  const vcfg_item = VERDICT_CONFIG[item.verdict as keyof typeof VERDICT_CONFIG] || VERDICT_CONFIG.Suspicious;
+                  
+                  return (
+                    <motion.div 
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      whileHover={{ y: -5 }}
+                      className="group relative"
+                    >
+                      <Card className="h-full rounded-[2.5rem] bg-[#0A0A0B]/80 border-white/5 hover:border-white/20 transition-all duration-500 overflow-hidden backdrop-blur-xl">
+                        <div className="p-8 space-y-6 flex flex-col h-full">
+                          <div className="flex items-center justify-between">
+                             <div className="size-10 rounded-xl bg-white/[0.03] flex items-center justify-center border border-white/5">
+                                {React.createElement(typeIcon as any, { className: "size-5 text-white/40" })}
+                             </div>
+                             <div className="flex items-center gap-2">
+                                <Badge className={cn("text-[9px] font-black uppercase tracking-widest px-3 py-1", vcfg_item.bg, vcfg_item.color, vcfg_item.border)}>
+                                  {vcfg_item.label}
+                                </Badge>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); deleteHistoryItem(item.id); }}
+                                  className="size-8 rounded-full hover:bg-red-500/10 flex items-center justify-center text-white/20 hover:text-red-500 transition-all"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
+                             </div>
+                          </div>
+
+                          <div className="space-y-2 flex-grow">
+                             <p className="text-xs text-white/60 font-medium line-clamp-3 leading-relaxed italic">
+                                {`"${item.input_text || item.ocr_text || 'Image Scan'}"`}
+                             </p>
+                          </div>
+
+                          <div className="pt-6 border-t border-white/5 flex items-center justify-between mt-auto">
+                             <div className="flex flex-col">
+                                <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Analyzed on</p>
+                                <p className="text-[10px] font-bold text-white/40">{new Date(item.created_at).toLocaleDateString()}</p>
+                             </div>
+                             <Button 
+                               onClick={() => loadHistoryItem(item)}
+                               variant="ghost" 
+                               className="size-10 rounded-full bg-white/[0.03] hover:bg-blue-500 hover:text-white transition-all p-0"
+                             >
+                               <ChevronRight className="size-5" />
+                             </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+
+        {/* Clear History Confirmation Modal */}
+        <AnimatePresence>
+          {showClearConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+               <motion.div 
+                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                 onClick={() => setShowClearConfirm(false)}
+                 className="absolute inset-0 bg-black/80 backdrop-blur-md" 
+               />
+               <motion.div 
+                 initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+                 animate={{ opacity: 1, scale: 1, y: 0 }} 
+                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                 className="relative w-full max-w-md p-10 rounded-[3.5rem] bg-[#0A0A0B] border-2 border-white/10 shadow-2xl overflow-hidden"
+               >
+                  <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                     <AlertTriangle className="size-48" />
+                  </div>
+                  
+                  <div className="space-y-8 relative z-10">
+                     <div className="size-20 rounded-[2rem] bg-red-500/10 flex items-center justify-center border border-red-500/20">
+                        <AlertTriangle className="size-10 text-red-500 animate-pulse" />
+                     </div>
+                     <div className="space-y-4">
+                        <h3 className="text-3xl font-black text-white uppercase tracking-tighter leading-none">Wipe History?</h3>
+                        <p className="text-white/40 text-sm font-medium leading-relaxed">This will permanently delete all investigation records from the SCAMSHIELD cloud. This action cannot be reversed.</p>
+                     </div>
+                     <div className="flex gap-4">
+                        <Button onClick={() => setShowClearConfirm(false)}
+                          className="flex-1 h-16 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] text-white border border-white/5 font-black uppercase tracking-widest text-[10px]">
+                           Cancel
+                        </Button>
+                        <Button onClick={clearHistory}
+                          className="flex-1 h-16 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-widest text-[10px] shadow-[0_15px_30px_rgba(220,38,38,0.3)]">
+                           Delete All
+                        </Button>
+                     </div>
+                  </div>
+               </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -2369,8 +2670,8 @@ const ScamQuizArenaView = () => {
     if (dailyStats && dailyStats.daily_attempts >= 3) {
       toast({
         title: "Daily Limit Reached",
-        description: "You've completed your 3 learning scenarios for today. Come back tomorrow!",
-        variant: "destructive"
+        message: "You've completed your 3 learning scenarios for today. Come back tomorrow!",
+        variant: "error"
       });
       return;
     }
@@ -2379,8 +2680,8 @@ const ScamQuizArenaView = () => {
     if (!cat || !QUIZ_DATA[cat.title] || QUIZ_DATA[cat.title].length === 0) {
       toast({
         title: "Category Unavailable",
-        description: "This arena is currently undergoing maintenance. Please try another!",
-        variant: "destructive"
+        message: "This arena is currently undergoing maintenance. Please try another!",
+        variant: "error"
       });
       return;
     }
@@ -2752,7 +3053,7 @@ const SettingsView = ({ onLogout }: { onLogout: () => void }) => {
     const path = `avatars/${user.id}.${ext}`;
     const { error: uploadErr } = await supabase.storage.from('audio-evidence').upload(path, file, { upsert: true });
     if (uploadErr) {
-      toast({ title: 'Upload failed', message: uploadErr.message, variant: 'destructive' });
+      toast({ title: 'Upload failed', message: uploadErr.message, variant: 'error' });
       setUploading(false);
       return;
     }
@@ -2771,7 +3072,7 @@ const SettingsView = ({ onLogout }: { onLogout: () => void }) => {
     }).eq('id', user.id);
     setSaving(false);
     if (error) {
-      toast({ title: 'Error', message: error.message, variant: 'destructive' });
+      toast({ title: 'Error', message: error.message, variant: 'error' });
       return;
     }
     toast({ title: 'Saved', message: 'Your profile has been updated successfully.' });
