@@ -15,6 +15,8 @@ import Dashboard from "./components/Dashboard";
 import StaffDashboard from "./components/StaffDashboard";
 import AddItemPage from "./components/AddItemPage";
 import SplashCursor from "./components/ui/SplashCursor";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AuthCallback from "./components/AuthCallback";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { useScrollReveal } from "./lib/useScrollReveal";
@@ -39,12 +41,25 @@ export default function App() {
   return (
     <div className="relative min-h-screen bg-brand-bg-top overflow-x-hidden selection:bg-white selection:text-black">
       <Routes>
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/toast-demo" element={<ToasterDemo />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/staff-dashboard" element={<StaffDashboard />} />
-        <Route path="/report-scam" element={<AddItemPage />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/staff-dashboard" element={
+          <ProtectedRoute>
+            <StaffDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/report-scam" element={
+          <ProtectedRoute>
+            <AddItemPage />
+          </ProtectedRoute>
+        } />
         <Route path="/" element={
           <>
             <SplashCursor 

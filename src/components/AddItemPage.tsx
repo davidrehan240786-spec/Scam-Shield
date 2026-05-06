@@ -25,6 +25,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/lib/toast-context";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 
 // --- Types ---
 
@@ -53,6 +55,7 @@ const TIME_SKEW = ["Today", "Yesterday", "Last Week", "Older"];
 export default function AddItemPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<ItemData>({
@@ -123,7 +126,7 @@ export default function AddItemPage() {
     if (formData.images.length <= 1) setSmartAssist(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.description) {
       toast({
@@ -134,12 +137,80 @@ export default function AddItemPage() {
       return;
     }
 
-    toast({
-      title: "Report Submitted",
-      message: "Your report has been securely submitted for AI analysis and community protection.",
-      variant: "success"
-    });
-    navigate("/dashboard");
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        message: "Please log in to submit a report.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // 1. Prepare image URL (Taking the first one as evidence_url)
+      let evidence_url = "";
+      
+      if (formData.images.length > 0) {
+        const img = formData.images[0];
+        if (img.startsWith('blob:')) {
+          const response = await fetch(img);
+          const blob = await response.blob();
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('audio-evidence') 
+            .upload(`evidence/${fileName}`, blob);
+            
+          if (uploadError) {
+            console.error("Image Upload Error:", uploadError);
+            throw uploadError;
+          }
+          
+          const { data: { publicUrl } } = supabase.storage
+            .from('audio-evidence')
+            .getPublicUrl(`evidence/${fileName}`);
+            
+          evidence_url = publicUrl;
+        } else {
+          evidence_url = img;
+        }
+      }
+
+      // 2. Insert into Supabase - MATCHING EXISTING SCHEMA
+      const { error } = await supabase.from('scam_reports').insert({
+        user_id: user.id,
+        incident_title: formData.title.trim(),
+        description: formData.description.trim(),
+        scam_type: formData.category,
+        platform: formData.location,
+        severity: formData.condition,
+        evidence_url: evidence_url || null,
+        created_at: new Date().toISOString()
+      });
+
+      if (error) {
+        console.error("Supabase Insert Error Object:", error);
+        throw error;
+      }
+
+      toast({
+        title: "Report Submitted",
+        message: "Your report has been successfully submitted.",
+        variant: "success"
+      });
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Full Submission Error Detail:", error);
+      toast({
+        title: "Submission Failed",
+        message: error.message || "An error occurred while submitting your report.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (

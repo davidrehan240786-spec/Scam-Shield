@@ -3,17 +3,24 @@ import { Link, useNavigate } from "react-router-dom";
 import HoverAnimationButton from "@/components/ui/hover-animation-button";
 import { Menu, X } from "lucide-react";
 import AnimatedDropdown from "@/components/ui/animated-dropdown";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
+import { useTranslation, Language } from "@/i18n/TranslationContext";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const { t, setLanguage, language } = useTranslation();
 
-  const languages = [
-    { name: "English", link: "#" },
-    { name: "हिंदी", link: "#" },
-    { name: "ಕನ್ನಡ", link: "#" },
+  const languageOptions = [
+    { name: "English", onClick: () => setLanguage("en") },
+    { name: "हिंदी", onClick: () => setLanguage("hi") },
+    { name: "ಕನ್ನಡ", onClick: () => setLanguage("kn") },
   ];
+
+  const currentLangLabel = language === "en" ? "EN" : language === "hi" ? "HI" : "KN";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,10 +31,15 @@ export default function Navbar() {
   }, []);
 
   const navLinks = [
-    { label: "About", to: "/#about" },
-    { label: "Features", to: "/#features" },
-    { label: "FAQs", to: "/#faqs" },
+    { label: t("nav.about"), to: "/#about" },
+    { label: t("nav.features"), to: "/#features" },
+    { label: t("nav.faqs"), to: "/#faqs" },
   ];
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
 
   return (
     <nav
@@ -39,14 +51,15 @@ export default function Navbar() {
     >
       <div className="max-w-[1200px] w-full px-6 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 z-50">
+          <img src="/LOGO.png" alt="SafeNet AI Logo" className="h-8 w-8 object-contain" />
           <span className="font-bold text-lg tracking-tight uppercase">ScamShield</span>
         </Link>
 
         {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-2">
           <AnimatedDropdown 
-            items={languages} 
-            text="EN" 
+            items={languageOptions} 
+            text={currentLangLabel} 
             className="mr-2"
           />
           {navLinks.map((item) => (
@@ -62,12 +75,31 @@ export default function Navbar() {
 
         <div className="flex items-center gap-4">
           <div className="hidden md:block">
-            <HoverAnimationButton 
-              onClick={() => navigate("/signup")}
-              className="!p-0"
-            >
-              Get Started
-            </HoverAnimationButton>
+            {loading ? (
+              <div className="size-8 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+            ) : user ? (
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/dashboard"
+                  className="px-4 py-2 rounded-full text-[14px] font-medium text-white/70 hover:text-white hover:bg-white/10 border border-white/10 transition-all"
+                >
+                  {t("nav.dashboard")}
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 rounded-full text-[14px] font-medium text-red-400/80 hover:text-red-400 hover:bg-red-400/10 border border-red-400/10 transition-all"
+                >
+                  {t("nav.logout")}
+                </button>
+              </div>
+            ) : (
+              <HoverAnimationButton 
+                onClick={() => navigate("/signup")}
+                className="!p-0"
+              >
+                {t("nav.get_started")}
+              </HoverAnimationButton>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -96,20 +128,34 @@ export default function Navbar() {
         ))}
         
         <AnimatedDropdown 
-          items={languages} 
-          text="Select Language" 
+          items={languageOptions} 
+          text={t("landing.select_lang")} 
           className="mt-4"
         />
 
         <HoverAnimationButton 
           onClick={() => {
             setIsMobileMenuOpen(false);
-            navigate("/signup");
+            if (user) {
+              handleLogout();
+            } else {
+              navigate("/signup");
+            }
           }}
           className="!p-0 mt-4"
         >
-          Get Started
+          {user ? t("nav.logout") : t("nav.get_started")}
         </HoverAnimationButton>
+        
+        {user && (
+          <Link
+            to="/dashboard"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="text-xl font-medium text-white/70 hover:text-white transition-all"
+          >
+            {t("landing.go_dashboard")}
+          </Link>
+        )}
       </div>
     </nav>
   );
