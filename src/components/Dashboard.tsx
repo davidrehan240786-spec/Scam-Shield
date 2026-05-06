@@ -62,8 +62,11 @@ import {
   Briefcase,
   Cpu,
   Globe,
-  Radio
+  Radio,
+  Camera,
+  Image as ImageIcon
 } from "lucide-react";
+import { createWorker } from 'tesseract.js';
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -376,6 +379,26 @@ const HEURISTIC_SCAM_SIGNALS = [
   "login", "password", "credential", "update"
 ];
 
+const DANGEROUS_KEYWORDS = ["OTP", "URGENT", "CLICK HERE", "VERIFY NOW", "PAYMENT", "KYC", "BANK", "REFUND", "CASHBACK", "REWARD", "WINNER", "LOCKED", "SUSPENDED"];
+
+const highlightDangerousWords = (text: string) => {
+  if (!text) return text;
+  const parts = text.split(new RegExp(`(\\b(?:${DANGEROUS_KEYWORDS.join("|")})\\b)`, 'gi'));
+  return (
+    <>
+      {parts.map((part, i) => 
+        DANGEROUS_KEYWORDS.includes(part.toUpperCase()) ? (
+          <span key={i} className="text-red-500 font-black animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.3)] px-1 rounded bg-red-500/10">
+            {part}
+          </span>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+};
+
 const containsScamSignal = (text: string) => {
   const lowText = text.toLowerCase();
   return HEURISTIC_SCAM_SIGNALS.some(signal => lowText.includes(signal));
@@ -384,22 +407,86 @@ const containsScamSignal = (text: string) => {
 
 const ScamScannerView = () => {
   const [scanInput, setScanInput] = useState("");
-  const [scanType, setScanType] = useState<"message" | "url" | "email" | "job">("message");
+  const [scanType, setScanType] = useState<"message" | "url" | "email" | "job" | "image">("message");
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const { t } = useTranslation();
+
+  // OCR & Image States
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [ocrProgress, setOcrProgress] = useState(0);
+  const [ocrStatus, setOcrStatus] = useState("");
+  const [isOcrRunning, setIsOcrRunning] = useState(false);
 
   const SCAN_TYPES = [
     { key: "message" as const, label: "Message / SMS",   Icon: MessageSquare },
     { key: "email"   as const, label: "Email / Phishing", Icon: Bot },
     { key: "url"     as const, label: "URL / Link",       Icon: Share2 },
     { key: "job"     as const, label: "Job Offer",        Icon: Flag },
+    { key: "image"   as const, label: "Image / Screenshot", Icon: ImageIcon },
   ] as const;
 
+  const runOcr = async (file: File): Promise<string> => {
+    setIsOcrRunning(true);
+    setOcrProgress(0);
+    setOcrStatus("Initializing OCR Engine...");
+    
+    try {
+      const worker = await createWorker('eng', 1, {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            setOcrProgress(Math.floor(m.progress * 100));
+            setOcrStatus("Extracting text from screenshot...");
+          }
+        }
+      });
+      
+      const { data: { text } } = await worker.recognize(file);
+      await worker.terminate();
+      
+      if (!text.trim()) throw new Error("Unable to detect readable text from this screenshot.");
+      
+      setOcrStatus("Extraction complete.");
+      return text;
+    } catch (error: any) {
+      console.error("OCR Error:", error);
+      throw new Error(error.message || "Failed to extract text from image.");
+    } finally {
+      setIsOcrRunning(false);
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].includes(file.type)) {
+        setScanError("Unsupported file type. Please upload PNG, JPG, or WEBP.");
+        return;
+      }
+      setOcrStatus("Processing screenshot...");
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+        setOcrStatus("Ready for scan.");
+      };
+      reader.readAsDataURL(file);
+      setScanError(null);
+      setResult(null);
+    }
+  };
+
   const handleScan = async () => {
-    if (!scanInput.trim()) return;
+    // If image scan, we need an image. If text scan, we need text.
+    if (scanType !== "image" && !scanInput.trim()) return;
+    if (scanType === "image" && !selectedImage) {
+      setScanError("Please upload a screenshot first.");
+      return;
+    }
     setScanning(true);
+    console.log("DEBUG: handleScan called. Type:", scanType, "Input Length:", scanInput.length, "Has Image:", !!selectedImage);
     setResult(null);
     setScanError(null);
 
@@ -410,7 +497,41 @@ const ScamScannerView = () => {
       return;
     }
 
-    const typeLabel = { message: "SMS/WhatsApp message", email: "email", url: "URL/link", job: "job offer" }[scanType];
+    const typeLabel = { 
+      message: "SMS/WhatsApp message", 
+      email: "email", 
+      url: "URL/link", 
+      job: "job offer",
+      image: "screenshot content"
+    }[scanType];
+
+    let textToScan = scanInput;
+
+    if (scanType === "image") {
+      console.log("DEBUG: Starting OCR Pipeline for file:", selectedImage?.name);
+      setScanning(true); // Ensure overall scanning state is true
+      try {
+        textToScan = await runOcr(selectedImage!);
+        console.log("DEBUG: OCR Extracted Text:", textToScan);
+        setScanInput(textToScan); // Update UI, but use textToScan locally
+      } catch (err: any) {
+        console.error("DEBUG: OCR Pipeline Failed:", err.message);
+        setScanError(err.message);
+        setScanning(false);
+        return;
+      }
+    }
+
+    setScanning(true);
+    setResult(null);
+    setScanError(null);
+    setOcrStatus("Running AI Neural Scan...");
+
+    if (!textToScan.trim()) {
+      setScanError("No text found to analyze.");
+      setScanning(false);
+      return;
+    }
     const prompt = `You are a Tier-1 Cybersecurity Analyst and Phishing Detection Engine.
 Your goal is to protect users from financial loss and data theft.
 
@@ -432,7 +553,7 @@ HIGH-RISK INDICATORS (Automatic Critical/High Risk):
 
 Analyze this ${typeLabel}:
 """
-${scanInput}
+${textToScan}
 """
 
 RESPONSE FORMAT (Strict JSON):
@@ -474,6 +595,9 @@ LOGIC RULES:
             }),
           });
 
+          console.log(`DEBUG: AI Request (${model}) payload sent.`);
+          setOcrStatus("Generating threat report...");
+
           if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
             throw new Error(errData?.error?.message || `HTTP ${res.status}`);
@@ -481,6 +605,7 @@ LOGIC RULES:
 
           const data = await res.json();
           const raw = data?.choices?.[0]?.message?.content || "";
+          console.log(`DEBUG: AI Response (${model}) received:`, raw);
           if (!raw) throw new Error("Empty response from AI");
 
           const cleaned = raw.replace(/```(?:json)?|```/g, "").trim();
@@ -489,7 +614,7 @@ LOGIC RULES:
           
           const parsed: ScanResult = JSON.parse(match[0]);
           
-          if ((parsed.verdict === "Safe" || parsed.risk === "Low" || parsed.risk === "Medium") && containsScamSignal(scanInput)) {
+          if ((parsed.verdict === "Safe" || parsed.risk === "Low" || parsed.risk === "Medium") && containsScamSignal(textToScan)) {
             parsed.verdict = "Suspicious";
             parsed.risk = parsed.risk === "Low" ? "Medium" : parsed.risk;
             parsed.confidence = "70% (Heuristic Override)";
@@ -579,40 +704,117 @@ LOGIC RULES:
                 <div className="space-y-4 group/field">
                   <div className="flex items-center justify-between px-2">
                     <Label className="text-[11px] font-black uppercase tracking-[0.4em] text-blue-400/60 group-focus-within/field:text-blue-400 transition-colors">
-                      {t("scanner.input_label")}
+                      {scanType === "image" ? "Screenshot Analysis" : t("scanner.input_label")}
                     </Label>
-                    <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Neural Mode: Active</span>
+                    <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">
+                      {isOcrRunning ? ocrStatus : scanning ? "AI Neural Scan..." : "System Ready"}
+                    </span>
                   </div>
                   
-                  <div className="relative group/textarea">
-                    <textarea
-                      value={scanInput}
-                      onChange={(e) => setScanInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.ctrlKey && e.key === "Enter") handleScan(); }}
-                      placeholder={
-                        scanType === "url"     ? "Paste a suspicious URL or link here..." :
-                        scanType === "email"   ? "Paste the full email content here..." :
-                        scanType === "job"     ? "Paste the job offer message here..." :
-                        "Paste the suspicious SMS, WhatsApp message, or chat text here..."
-                      }
-                      className="w-full h-56 bg-white/[0.02] border-2 border-white/5 rounded-[2.5rem] p-10 text-white placeholder:text-white/10 focus:outline-none focus:border-blue-500/40 focus:ring-4 focus:ring-blue-500/5 transition-all resize-none font-medium leading-relaxed text-sm shadow-inner group-focus-within/textarea:bg-white/[0.04]"
-                    />
-                    <div className="absolute bottom-8 right-10 flex items-center gap-3">
-                       <div className="flex gap-1">
-                          {[1,2,3].map(i => <div key={i} className="size-1 rounded-full bg-blue-500/20 animate-pulse" style={{ animationDelay: `${i * 200}ms` }} />)}
-                       </div>
-                       <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Ctrl + Enter</p>
+                  {scanType === "image" ? (
+                    <div className="space-y-6">
+                      {!imagePreview ? (
+                        <div className="relative group/upload">
+                          <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
+                          <div className="w-full h-56 border-2 border-dashed border-white/10 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 bg-white/[0.01] group-hover/upload:bg-white/[0.03] group-hover/upload:border-blue-500/30 transition-all">
+                             <div className="size-16 rounded-2xl bg-blue-500/10 flex items-center justify-center">
+                                <ImageIcon className="size-8 text-blue-400" />
+                             </div>
+                             <div className="text-center">
+                                <p className="text-sm font-bold text-white">Drag & drop or click to upload</p>
+                                <p className="text-[10px] text-white/30 uppercase tracking-widest mt-1">PNG, JPG, WEBP (Max 5MB)</p>
+                             </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Image Preview with Scan Overlay */}
+                          <div className="relative rounded-[2.5rem] overflow-hidden border-2 border-white/5 bg-black/40 group/preview h-64">
+                             <img src={imagePreview} alt="Scan Target" className="w-full h-full object-contain" />
+                             
+                             {/* Cyber Scan Overlay */}
+                             {(isOcrRunning || scanning) && (
+                               <motion.div 
+                                 initial={{ opacity: 0 }}
+                                 animate={{ opacity: 1 }}
+                                 className="absolute inset-0 bg-blue-500/10 backdrop-blur-[2px] flex flex-col items-center justify-center gap-4"
+                               >
+                                  <motion.div 
+                                    animate={{ top: ["0%", "100%", "0%"] }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                    className="absolute left-0 right-0 h-[2px] bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] z-10" 
+                                  />
+                                  <div className="text-center z-20">
+                                     <p className="text-[10px] font-black text-white uppercase tracking-[0.2em] mb-2">{isOcrRunning ? "Extracting Text" : "Analyzing Patterns"}</p>
+                                     <div className="w-32 h-1 bg-white/10 rounded-full overflow-hidden">
+                                        <motion.div 
+                                          className="h-full bg-blue-500"
+                                          initial={{ width: 0 }}
+                                          animate={{ width: `${isOcrRunning ? ocrProgress : 100}%` }}
+                                        />
+                                     </div>
+                                  </div>
+                               </motion.div>
+                             )}
+                             
+                             <button 
+                               onClick={() => { setImagePreview(null); setSelectedImage(null); setScanInput(""); }}
+                               className="absolute top-4 right-4 size-8 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all opacity-0 group-hover/preview:opacity-100"
+                             >
+                               <X className="size-4" />
+                             </button>
+                          </div>
+
+                          {/* Extracted Text Preview */}
+                          <div className="relative h-64">
+                             <textarea
+                               value={scanInput}
+                               onChange={(e) => setScanInput(e.target.value)}
+                               placeholder="Extracted text will appear here..."
+                               className="w-full h-full bg-white/[0.02] border-2 border-white/5 rounded-[2.5rem] p-8 text-white placeholder:text-white/10 focus:outline-none focus:border-blue-500/40 transition-all resize-none font-medium leading-relaxed text-xs"
+                               readOnly={isOcrRunning}
+                             />
+                             <div className="absolute bottom-6 right-8">
+                                <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">OCR Output</p>
+                             </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="relative group/textarea">
+                      <textarea
+                        value={scanInput}
+                        onChange={(e) => setScanInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.ctrlKey && e.key === "Enter") handleScan(); }}
+                        placeholder={
+                          scanType === "url"     ? "Paste a suspicious URL or link here..." :
+                          scanType === "email"   ? "Paste the full email content here..." :
+                          scanType === "job"     ? "Paste the job offer message here..." :
+                          "Paste the suspicious SMS, WhatsApp message, or chat text here..."
+                        }
+                        className="w-full h-56 bg-white/[0.02] border-2 border-white/5 rounded-[2.5rem] p-10 text-white placeholder:text-white/10 focus:outline-none focus:border-blue-500/40 focus:ring-4 focus:ring-blue-500/5 transition-all resize-none font-medium leading-relaxed text-sm shadow-inner group-focus-within/textarea:bg-white/[0.04]"
+                      />
+                      <div className="absolute bottom-8 right-10 flex items-center gap-3">
+                         <div className="flex gap-1">
+                            {[1,2,3].map(i => <div key={i} className="size-1 rounded-full bg-blue-500/20 animate-pulse" style={{ animationDelay: `${i * 200}ms` }} />)}
+                         </div>
+                         <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Ctrl + Enter</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col md:flex-row items-center gap-6">
-                  <Button onClick={handleScan} disabled={scanning || !scanInput.trim()}
+                  <Button onClick={handleScan} disabled={scanning || isOcrRunning || (scanType === "image" ? !selectedImage : !scanInput.trim())}
                     className="w-full md:w-auto h-20 px-16 rounded-[2rem] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black uppercase tracking-[0.3em] text-xs disabled:opacity-50 gap-4 transition-all shadow-[0_20px_50px_rgba(37,99,235,0.3)] group/btn relative overflow-hidden">
                     <div className="absolute inset-0 bg-white/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500" />
-                    {scanning
-                      ? <><RefreshCcw className="size-5 animate-spin" /> {t("scanner.scanning")}</>
-                      : <><ShieldCheck className="size-5" /> {t("scanner.run_scan")}</>}
+                    {isOcrRunning 
+                      ? <><RefreshCcw className="size-5 animate-spin" /> {ocrStatus}</>
+                      : scanning
+                        ? <><RefreshCcw className="size-5 animate-spin" /> {t("scanner.scanning")}</>
+                        : <><ShieldCheck className="size-5" /> {scanType === "image" ? "ANALYZE SCREENSHOT" : t("scanner.run_scan")}</>
+                    }
                   </Button>
 
                   {result && (
@@ -706,7 +908,9 @@ LOGIC RULES:
                     <p className="text-[11px] font-black uppercase tracking-widest text-blue-400 flex items-center gap-3">
                       <Bot className="size-4" /> Neural Analysis Summary
                     </p>
-                    <p className="text-white/80 leading-relaxed font-medium text-lg max-w-5xl">{result.explanation}</p>
+                    <p className="text-white/80 leading-relaxed font-medium text-lg max-w-5xl">
+                      {highlightDangerousWords(result.explanation)}
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -720,7 +924,9 @@ LOGIC RULES:
                             <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 + i * 0.1 }}
                               className="flex items-start gap-4 p-4 rounded-2xl bg-red-500/5 border border-red-500/5 group/flag">
                               <div className="size-2 rounded-full bg-red-500 mt-2 shrink-0 animate-pulse" />
-                              <p className="text-xs text-white/70 font-medium leading-relaxed group-hover/flag:text-white transition-colors">{flag}</p>
+                              <p className="text-xs text-white/70 font-medium leading-relaxed group-hover/flag:text-white transition-colors">
+                                {highlightDangerousWords(flag)}
+                              </p>
                             </motion.div>
                           ))
                         ) : (
@@ -738,7 +944,7 @@ LOGIC RULES:
                       </h4>
                       <div className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/5">
                          <p className="text-sm text-white/80 font-medium leading-relaxed italic">
-                           "{result.recommendation}"
+                           "{highlightDangerousWords(result.recommendation)}"
                          </p>
                       </div>
                       <div className="space-y-2 pt-4">
