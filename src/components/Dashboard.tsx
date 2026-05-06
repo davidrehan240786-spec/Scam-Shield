@@ -408,7 +408,7 @@ const containsScamSignal = (text: string) => {
 
 const ScamScannerView = () => {
   const [scanInput, setScanInput] = useState("");
-  const [scanType, setScanType] = useState<"message" | "url" | "email" | "job" | "image">("message");
+  const [scanType, setScanType] = useState<"text" | "image">("text");
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -559,7 +559,8 @@ const ScamScannerView = () => {
   };
 
   const loadHistoryItem = (item: any) => {
-    setScanType(item.scan_type as any);
+    const isImage = item.scan_type === "image";
+    setScanType(isImage ? "image" : "text");
     setScanInput(item.input_text || item.ocr_text || "");
     setSelectedImage(null);
     setImagePreview(null);
@@ -576,11 +577,8 @@ const ScamScannerView = () => {
   };
 
   const SCAN_TYPES = [
-    { key: "message" as const, label: "Message / SMS",   Icon: MessageSquare },
-    { key: "email"   as const, label: "Email / Phishing", Icon: Bot },
-    { key: "url"     as const, label: "URL / Link",       Icon: Share2 },
-    { key: "job"     as const, label: "Job Offer",        Icon: Flag },
-    { key: "image"   as const, label: "Image / Screenshot", Icon: ImageIcon },
+    { key: "text"  as const, label: "TEXT",   Icon: MessageSquare },
+    { key: "image" as const, label: "IMAGE", Icon: ImageIcon },
   ] as const;
 
   const runOcr = async (file: File): Promise<string> => {
@@ -653,10 +651,7 @@ const ScamScannerView = () => {
     }
 
     const typeLabel = { 
-      message: "SMS/WhatsApp message", 
-      email: "email", 
-      url: "URL/link", 
-      job: "job offer",
+      text: "text content", 
       image: "screenshot content"
     }[scanType];
 
@@ -950,12 +945,7 @@ LOGIC RULES:
                         value={scanInput}
                         onChange={(e) => setScanInput(e.target.value)}
                         onKeyDown={(e) => { if (e.ctrlKey && e.key === "Enter") handleScan(); }}
-                        placeholder={
-                          scanType === "url"     ? "Paste a suspicious URL or link here..." :
-                          scanType === "email"   ? "Paste the full email content here..." :
-                          scanType === "job"     ? "Paste the job offer message here..." :
-                          "Paste the suspicious SMS, WhatsApp message, or chat text here..."
-                        }
+                        placeholder="Paste suspicious message, email, URL, or job offer..."
                         className="w-full h-56 bg-white/[0.02] border-2 border-white/5 rounded-[2.5rem] p-10 text-white placeholder:text-white/10 focus:outline-none focus:border-blue-500/40 focus:ring-4 focus:ring-blue-500/5 transition-all resize-none font-medium leading-relaxed text-sm shadow-inner group-focus-within/textarea:bg-white/[0.04]"
                       />
                       <div className="absolute bottom-8 right-10 flex items-center gap-3">
