@@ -7,6 +7,7 @@ import Product from "./components/Product";
 import Testimonials from "./components/Testimonials";
 import Blog from "./components/Blog";
 import FAQ from "./components/FAQ";
+import CTA from "./components/CTA";
 import Footer from "./components/Footer";
 import Login from "./components/Login";
 import SignUp from "./components/SignUp";
@@ -81,6 +82,7 @@ export default function App() {
               <div id="testimonials"><Testimonials /></div>
               <div id="blog"><Blog /></div>
               <div id="faqs"><FAQ /></div>
+              <CTA />
             </main>
 
             <Footer />

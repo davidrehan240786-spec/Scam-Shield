@@ -246,6 +246,272 @@ export const en = {
     select_lang: "Select Language",
     go_dashboard: "Go to Dashboard",
   },
+  home: {
+    hero: {
+      badge: "AI Engine Online",
+      title: "Your AI-Powered Cyber Safety Assistant",
+      subtitle: "Detect scams in real time, learn from real-world threats, and build bulletproof online habits with SCAMSHIELD's advanced AI engine.",
+      features: {
+        scam_detection: "AI Scam Detection",
+        real_time: "Real-Time Protection",
+        community: "Community Verified",
+        awareness: "Cyber Awareness"
+      },
+      status: "Status",
+      secured: "Secured",
+      monitoring: "Monitoring",
+      active: "Active",
+      explore: "Explore"
+    },
+    about: {
+      badge: "Our Mission",
+      content: "ScamShield is built to bridge the gap between digital convenience and personal security. Our AI-powered platform provides instant scam detection, interactive learning modules, and community-driven reporting to ensure that every individual, regardless of tech-savviness, can navigate the internet with confidence and safety."
+    },
+    features: {
+      badge: "Learning Hub",
+      title: "Stay One Step Ahead",
+      items: {
+        phishing: {
+          title: "Phishing Attacks",
+          desc: "Learn to spot fake emails and websites that steal your login credentials and personal information."
+        },
+        otp: {
+          title: "OTP Fraud",
+          desc: "Understand why you should never share your One-Time Password, even with someone claiming to be from your bank."
+        },
+        upi: {
+          title: "UPI Scams",
+          desc: "Protect your digital payments. Learn about collect requests and QR code scams common in digital wallets."
+        },
+        job: {
+          title: "Job Scams",
+          desc: "Identify fake job offers that ask for 'security deposits' or 'processing fees' before you start working."
+        },
+        lottery: {
+          title: "Lottery Scam",
+          desc: "If it sounds too good to be true, it is. Spot fake prize notifications designed to trick you into paying taxes."
+        },
+        social: {
+          title: "Social Media Hacks",
+          desc: "Secure your accounts with 2FA and learn how hackers use social engineering to take over your profile."
+        }
+      }
+    },
+    stats: {
+      badge: "Impact & Protection",
+      title: "The Scale of Digital Threats",
+      items: {
+        financial: { label: "Financial Impact", value: "₹500Cr+", desc: "Estimated annual loss to cyber scams globally." },
+        detected: { label: "Scams Detected", value: "40,000+", desc: "Suspicious activities identified by our AI this month." },
+        rating: { label: "Safety Rating", value: "98%", desc: "Percentage of analyzed messages accurately classified." },
+        time: { label: "Response Time", value: "< 2s", desc: "Real-time AI analysis for instant protection." }
+      },
+      defense: {
+        title: "Real-Time Defense",
+        subtitle: "Our proactive approach to preventing financial loss.",
+        prevent: {
+          title: "Prevent Financial Loss",
+          desc: "Stop scams before they reach your wallet. Our real-time filters block fraudulent payment links and suspicious transaction requests before any financial loss can occur."
+        },
+        insights: {
+          title: "Explainable AI Insights",
+          desc: "We don't just flag threats; we explain them. Our AI identifies malicious patterns and provides detailed context, helping you understand the 'why' behind suspicious activities."
+        }
+      },
+      global: {
+        title: "Global Awareness",
+        subtitle: "Strengthening the digital front through collective power.",
+        literacy: {
+          title: "Improve User Literacy",
+          desc: "Security is a skill. We help users develop a 'security-first' mindset through interactive tools and live safety training that adapts to evolving scam patterns."
+        },
+        reporting: {
+          title: "Community Reporting",
+          desc: "Enable community-driven reporting that scale. Your reports feed directly into our global detection engine, protecting millions of other users across the network instantly."
+        }
+      }
+    },
+    product: {
+      badge: "Interactive Protection",
+      title: "Proactive Digital Defense",
+      analyzer: {
+        title: "AI Scam Analyzer",
+        desc: "Quickly analyze suspicious messages, emails, and links with our explainable AI. Get a clear verdict and understand the specific red flags identified by our pattern detection engine.",
+        placeholder: "Paste a suspicious message, email, or link...",
+        verdict: "Verdict: Scam Detection",
+        example_msg: "Congratulations! You've won a ₹1,00,000 cash prize. Click here to claim your reward instantly: http://bit.ly/claim-reward-now-827 🎁",
+        example_desc: "This message exhibits classic phishing patterns: unsolicited prize notification, use of a URL shortener to hide the destination, and psychological pressure to 'claim instantly'."
+      },
+      multilingual: {
+        title: "Multilingual Awareness",
+        desc: "Cyber safety is for everyone. Access our detailed scam-prevention guides in English, हिंदी, and ಕನ್ನಡ.",
+        items: {
+          english: "English Guide",
+          tips: "Quick Tips",
+          emergency: "Emergency Help",
+          reporting: "Reporting Hub",
+          community: "Community Tips",
+          regional: "Regional Safety"
+        }
+      },
+      patterns: {
+        title: "Detected Scam Patterns",
+        desc: "Our real-time engine analyzes user-submitted reports to identify emerging scam signatures. Stay informed about the latest trends in UPI fraud, job scams, and phishing attempts commonly targeting the community.",
+        upi: "UPI Payment Scam",
+        job: "Job Offer Fraud",
+        confidence: "Confidence",
+        detected: "Detected"
+      },
+      trust: {
+        title: "Trustworthy by Design",
+        desc: "We employ military-grade AI models and verification layers to ensure you're always one step ahead of digital criminals.",
+        items: {
+          engine: "AI Verification Engine",
+          zero_trust: "Zero-Trust Analysis",
+          shield: "Community Shield"
+        }
+      }
+    },
+    testimonials: {
+      badge: "Community Voice",
+      title: "Secured by ScamShield",
+      subtitle: "Real stories from our community members who avoided scams using our tools.",
+      items: {
+        priya: {
+          quote: "ScamShield flagged a fake OTP message from my bank. It saved me from losing ₹45,000!",
+          author: "Priya Sharma",
+          role: "Digital Banking User"
+        },
+        rahul: {
+          quote: "The Job Scam guide helped me identify a fake interview call. Stay safe everyone!",
+          author: "Rahul Mehra",
+          role: "Job Seeker"
+        },
+        mr_kapoor: {
+          quote: "As a senior citizen, I was afraid of clicking links. Now I test them in the Analyzer first. Great tool.",
+          author: "Mr. Kapoor",
+          role: "Resident"
+        },
+        sania: {
+          quote: "I was about to fall for a social media impersonator. The analyzer caught it immediately. Highly recommend!",
+          author: "Sania Mirza",
+          role: "Content Creator"
+        },
+        kiran: {
+          quote: "The Kannada safety guide is very detailed. My parents now understand UPI scams much better.",
+          author: "Kiran Kumar",
+          role: "Marketing Manager"
+        },
+        anjali: {
+          quote: "Detected a phishing link remarkably fast. This tool should be on everyone's phone.",
+          author: "Anjali Gupta",
+          role: "IT Professional"
+        },
+        vikram: {
+          quote: "The pattern detection is amazing. It caught a new lottery scam before it even spread in our area.",
+          author: "Vikram Singh",
+          role: "Community Volunteer"
+        },
+        neha: {
+          quote: "Simple, fast, and effective. The Analyzer's reasoning is easy to understand even for non-tech people.",
+          author: "Neha Reddy",
+          role: "Bank Employee"
+        },
+        arjun: {
+          quote: "ScamShield has changed how I interact with the web. I'm much more aware of social engineering tactics now.",
+          author: "Arjun Das",
+          role: "Student"
+        }
+      }
+    },
+    blog: {
+      badge: "Safety Insights",
+      title: "Stay Informed, Stay Safe",
+      subtitle: "Learn from cybersecurity experts",
+      cta: "Watch on YouTube",
+      posts: {
+        digital_identity: {
+          title: "Recognizing Digital Identity Theft in 2026",
+          desc: "Learn about the latest techniques used by cybercriminals to steal your digital identity.",
+          category: "Digital Identity"
+        },
+        bank_protection: {
+          title: "How To Protect Your Online Bank Account",
+          desc: "Essential security practices to keep your banking credentials safe.",
+          category: "Banking Safety"
+        },
+        social_engineering: {
+          title: "What is Social Engineering?",
+          desc: "Understand the psychological manipulation tactics used by scammers.",
+          category: "Social Engineering"
+        }
+      }
+    },
+    faq: {
+      badge: "FAQ",
+      title: "Frequently Asked Questions",
+      subtitle: "Have a question? We've got answers. If you don't find what you're looking for, please check our documentation or security guides.",
+      items: {
+        what_is: {
+          q: "What exactly is ScamShield?",
+          a: "ScamShield is an AI-powered security platform designed to protect users from various online scams. We provide tools to analyze suspicious messages, educate users on cyber threats, and facilitate community-driven scam reporting."
+        },
+        is_free: {
+          q: "Is ScamShield free to use?",
+          a: "Yes, our core scam detection and educational features are completely free. We believe everyone should have access to basic digital safety tools without any financial barrier."
+        },
+        multiple_languages: {
+          q: "Does it support multiple languages?",
+          a: "Absolutely! We currently provide full support and educational guides in English, Hindi, and Kannada, making cybersecurity accessible to a wider audience in India."
+        },
+        reporting: {
+          q: "How does the reporting system work?",
+          a: "When you encounter a scam, you can report it through our platform. Our AI analyzes the report to identify new patterns, which then helps protect all other users in real-time."
+        },
+        ai_accuracy: {
+          q: "How accurate is the AI Scam Analyzer?",
+          a: "Our AI engine is trained on millions of known scam patterns and achieves over 98% accuracy. However, we always provide detailed reasoning so you can make an informed decision."
+        }
+      }
+    },
+    footer: {
+      stay_secure: "Stay Secure",
+      tagline: "Protecting digital lives with advanced AI scam detection and community-driven safety.",
+      newsletter: {
+        title: "Newsletter",
+        desc: "Subscribe to get real-time alerts about new scam patterns and security tips.",
+        placeholder: "Enter your email"
+      },
+      product: {
+        title: "Platform",
+        features: "Features",
+        about: "About",
+        analyzer: "AI Analyzer",
+        faq: "FAQ"
+      },
+      company: {
+        title: "Company",
+        privacy: "Privacy Policy",
+        terms: "Terms of Service",
+        contact: "Contact Us",
+        digital_safety: "Digital Safety"
+      },
+      hq_title: "Global Headquarters",
+      connect: "Connect",
+      social_tooltips: {
+        facebook: "Follow our global community",
+        twitter: "Latest security news",
+        instagram: "Protection highlights",
+        linkedin: "Cyber safety network"
+      },
+      copyright: "© 2024 ScamShield Hub. All rights reserved."
+    },
+    cta: {
+      title: "Be prepared. Stay informed. Secure your future.",
+      subtitle: "Join thousands of users who trust ScamShield for secure, instant protection against digital fraud.",
+      button: "Start Using ScamShield"
+    }
+  },
   quiz: {
     title: "Scam Quiz Arena",
     subtitle: "Sharpen your investigative skills. Face real-world scam scenarios and prove your awareness.",

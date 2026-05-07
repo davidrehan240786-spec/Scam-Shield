@@ -2,13 +2,16 @@ import { Shield, Lock, Activity, Zap, Cpu, BellRing, Target } from "lucide-react
 import { motion } from "framer-motion";
 import { SplineScene } from "./ui/splite";
 import { Spotlight } from "./ui/spotlight";
+import { useTranslation } from "../i18n/TranslationContext";
 
 export default function Hero() {
+  const { t } = useTranslation();
+  
   const features = [
-    { icon: <Zap className="size-3" />, label: "AI Scam Detection" },
-    { icon: <Target className="size-3" />, label: "Real-Time Protection" },
-    { icon: <Cpu className="size-3" />, label: "Community Verified" },
-    { icon: <BellRing className="size-3" />, label: "Cyber Awareness" },
+    { icon: <Zap className="size-3" />, label: t('home.hero.features.scam_detection') },
+    { icon: <Target className="size-3" />, label: t('home.hero.features.real_time') },
+    { icon: <Cpu className="size-3" />, label: t('home.hero.features.community') },
+    { icon: <BellRing className="size-3" />, label: t('home.hero.features.awareness') },
   ];
 
   return (
@@ -43,7 +46,7 @@ export default function Hero() {
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/[0.07] border border-blue-500/20 backdrop-blur-sm"
             >
               <div className="size-1.5 rounded-full bg-blue-400 animate-pulse" />
-              <span className="text-[10px] font-bold text-blue-400/90 uppercase tracking-[0.25em] leading-none">AI Engine Online</span>
+              <span className="text-[10px] font-bold text-blue-400/90 uppercase tracking-[0.25em] leading-none">{t('home.hero.badge')}</span>
             </motion.div>
 
             <motion.div
@@ -52,12 +55,11 @@ export default function Hero() {
               transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
               className="space-y-8"
             >
-              <h1 className="text-4xl md:text-5xl lg:text-7xl font-semibold text-white/95 tracking-tight leading-[1.1]">
-                Your AI-Powered <br />
-                Cyber Safety Assistant
+              <h1 className="text-4xl md:text-5xl lg:text-7xl font-semibold text-white/95 tracking-tight leading-[1.1]" 
+                  dangerouslySetInnerHTML={{ __html: t('home.hero.title').replace('Cyber Safety Assistant', '<br />Cyber Safety Assistant') }}>
               </h1>
               <p className="text-white/40 text-lg md:text-xl max-w-lg leading-relaxed font-normal">
-                Detect scams in real time, learn from real-world threats, and build bulletproof online habits with SCAMSHIELD's advanced AI engine.
+                {t('home.hero.subtitle')}
               </p>
 
               {/* Feature Pills */}
@@ -105,8 +107,8 @@ export default function Hero() {
                   <Shield className="size-4 text-blue-400" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-white/40">Status</span>
-                  <span className="text-xs font-semibold text-blue-400">Secured</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-white/40">{t('home.hero.status')}</span>
+                  <span className="text-xs font-semibold text-blue-400">{t('home.hero.secured')}</span>
                 </div>
               </div>
             </div>
@@ -117,8 +119,8 @@ export default function Hero() {
                   <Activity className="size-4 text-emerald-400" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-white/40">Monitoring</span>
-                  <span className="text-xs font-semibold text-emerald-400">Active</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-white/40">{t('home.hero.monitoring')}</span>
+                  <span className="text-xs font-semibold text-emerald-400">{t('home.hero.active')}</span>
                 </div>
               </div>
             </div>
@@ -139,7 +141,7 @@ export default function Hero() {
         transition={{ delay: 1.5 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3"
       >
-        <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.4em] vertical-rl h-12">Explore</span>
+        <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.4em] vertical-rl h-12">{t('home.hero.explore')}</span>
         <div className="w-[1px] h-8 bg-gradient-to-t from-white/20 to-transparent" />
       </motion.div>
     </section>

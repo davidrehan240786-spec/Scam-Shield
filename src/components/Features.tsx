@@ -1,36 +1,39 @@
 import { ShieldAlert, KeyRound, Smartphone, Briefcase, Trophy, UserRound } from "lucide-react";
+import { useTranslation } from "../i18n/TranslationContext";
 
 export default function Features() {
+  const { t } = useTranslation();
+  
   const features = [
     {
       icon: <ShieldAlert className="w-6 h-6 text-red-400" />,
-      title: "Phishing Attacks",
-      description: "Learn to spot fake emails and websites that steal your login credentials and personal information."
+      title: t('home.features.items.phishing.title'),
+      description: t('home.features.items.phishing.desc')
     },
     {
       icon: <KeyRound className="w-6 h-6 text-yellow-400" />,
-      title: "OTP Fraud",
-      description: "Understand why you should never share your One-Time Password, even with someone claiming to be from your bank."
+      title: t('home.features.items.otp.title'),
+      description: t('home.features.items.otp.desc')
     },
     {
       icon: <Smartphone className="w-6 h-6 text-emerald-400" />,
-      title: "UPI Scams",
-      description: "Protect your digital payments. Learn about collect requests and QR code scams common in digital wallets."
+      title: t('home.features.items.upi.title'),
+      description: t('home.features.items.upi.desc')
     },
     {
       icon: <Briefcase className="w-6 h-6 text-blue-400" />,
-      title: "Job Scams",
-      description: "Identify fake job offers that ask for 'security deposits' or 'processing fees' before you start working."
+      title: t('home.features.items.job.title'),
+      description: t('home.features.items.job.desc')
     },
     {
       icon: <Trophy className="w-6 h-6 text-purple-400" />,
-      title: "Lottery Scam",
-      description: "If it sounds too good to be true, it is. Spot fake prize notifications designed to trick you into paying taxes."
+      title: t('home.features.items.lottery.title'),
+      description: t('home.features.items.lottery.desc')
     },
     {
       icon: <UserRound className="w-6 h-6 text-pink-400" />,
-      title: "Social Media Hacks",
-      description: "Secure your accounts with 2FA and learn how hackers use social engineering to take over your profile."
+      title: t('home.features.items.social.title'),
+      description: t('home.features.items.social.desc')
     }
   ];
 
@@ -39,9 +42,9 @@ export default function Features() {
       <div className="max-w-[1200px] mx-auto">
         <div className="mb-16">
           <div className="inline-block px-4 py-1.5 rounded-full glass border-white/10 text-[12px] font-medium text-white/50 mb-6 uppercase tracking-wider">
-            ● Learning Hub
+            ● {t('home.features.badge')}
           </div>
-          <h2 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">Stay One Step Ahead</h2>
+          <h2 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">{t('home.features.title')}</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

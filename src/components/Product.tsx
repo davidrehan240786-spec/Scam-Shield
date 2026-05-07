@@ -1,32 +1,35 @@
 import { Link } from "react-router-dom";
 import { MessageSquare, Shield, Zap, ShoppingBag, Send, Search, Heart, MapPin, Package, RefreshCcw, CheckCircle, UserCheck, Globe, ShieldCheck, AlertTriangle, Users, ArrowUpRight, Lock } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer } from "recharts";
+import { useTranslation } from "../i18n/TranslationContext";
 
 export default function Product() {
+  const { t } = useTranslation();
+
   const marketplaceCategories = [
-    { icon: <Globe className="w-4 h-4 text-blue-400" />, label: "English Guide" },
-    { icon: <Zap className="w-4 h-4 text-emerald-400" />, label: "Quick Tips" },
-    { icon: <ShieldCheck className="w-4 h-4 text-red-400" />, label: "Emergency Help" },
-    { icon: <RefreshCcw className="w-4 h-4 text-indigo-400" />, label: "Reporting Hub" },
-    { icon: <Heart className="w-4 h-4 text-pink-400" />, label: "Community Tips" },
-    { icon: <MapPin className="w-4 h-4 text-orange-400" />, label: "Regional Safety" },
+    { icon: <Globe className="w-4 h-4 text-blue-400" />, label: t('home.product.multilingual.items.english') },
+    { icon: <Zap className="w-4 h-4 text-emerald-400" />, label: t('home.product.multilingual.items.tips') },
+    { icon: <ShieldCheck className="w-4 h-4 text-red-400" />, label: t('home.product.multilingual.items.emergency') },
+    { icon: <RefreshCcw className="w-4 h-4 text-indigo-400" />, label: t('home.product.multilingual.items.reporting') },
+    { icon: <Heart className="w-4 h-4 text-pink-400" />, label: t('home.product.multilingual.items.community') },
+    { icon: <MapPin className="w-4 h-4 text-orange-400" />, label: t('home.product.multilingual.items.regional') },
   ];
 
   const matchCards = [
     { 
-      date: "Detected: 2h ago", 
-      label: "UPI Payment Scam", 
+      date: `${t('home.product.patterns.detected')}: 2h ago`, 
+      label: t('home.product.patterns.upi'), 
       color: "bg-red-400/20", 
       icon: <AlertTriangle className="text-red-400" />,
       data: [
         { v: 80 }, { v: 85 }, { v: 90 }, { v: 92 }, { v: 95 }
       ],
       chartColor: "#ef4444",
-      match: "95% Confidence"
+      match: `95% ${t('home.product.patterns.confidence')}`
     },
     { 
-      date: "Detected: 12h ago", 
-      label: "Job Offer Fraud", 
+      date: `${t('home.product.patterns.detected')}: 12h ago`, 
+      label: t('home.product.patterns.job'), 
       color: "bg-orange-400/20", 
       icon: <Search className="text-orange-400" />, 
       active: true,
@@ -34,7 +37,7 @@ export default function Product() {
         { v: 40 }, { v: 60 }, { v: 75 }, { v: 82 }, { v: 88 }
       ],
       chartColor: "#f97316",
-      match: "88% Confidence"
+      match: `88% ${t('home.product.patterns.confidence')}`
     },
   ];
 
@@ -42,9 +45,9 @@ export default function Product() {
     <section className="py-20 md:py-32 px-6 space-y-20 md:space-y-40">
       <div className="max-w-[1200px] mx-auto">
         <div className="inline-block px-4 py-1.5 rounded-full glass border-white/10 text-[12px] font-medium text-white/50 mb-6 uppercase tracking-wider">
-          ● Interactive Protection
+          ● {t('home.product.badge')}
         </div>
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-12 md:mb-20">Proactive Digital Defense</h2>
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-12 md:mb-20">{t('home.product.title')}</h2>
 
         {/* AI Scam Analyzer */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center animate-on-scroll">
@@ -53,18 +56,18 @@ export default function Product() {
             <div className="space-y-6">
               <div className="flex justify-end">
                 <div className="glass px-4 md:px-6 py-3 md:py-4 rounded-[1.5rem] md:rounded-[2rem] rounded-tr-none text-[13px] md:text-[14px] max-w-[90%] md:max-w-[80%]">
-                  Congratulations! You've won a ₹1,00,000 cash prize. Click here to claim your reward instantly: http://bit.ly/claim-reward-now-827 🎁
+                  {t('home.product.analyzer.example_msg')}
                 </div>
               </div>
               <div className="flex justify-start">
                 <div className="bg-white/10 px-4 md:px-6 py-3 md:py-4 rounded-[1.5rem] md:rounded-[2rem] rounded-tl-none text-[13px] md:text-[14px] max-w-[90%] md:max-w-[80%] text-white/60">
-                  <span className="text-red-400 font-bold block mb-1">Verdict: Scam Detection</span>
-                  This message exhibits classic phishing patterns: unsolicited prize notification, use of a URL shortener to hide the destination, and psychological pressure to 'claim instantly'.
+                  <span className="text-red-400 font-bold block mb-1">{t('home.product.analyzer.verdict')}</span>
+                  {t('home.product.analyzer.example_desc')}
                 </div>
               </div>
               <div className="pt-6 md:pt-8 flex gap-3">
                 <div className="flex-1 glass px-4 md:px-6 py-3 md:py-4 rounded-full text-[13px] md:text-[14px] text-white/30 flex items-center justify-between">
-                  Paste a suspicious message, email, or link...
+                  {t('home.product.analyzer.placeholder')}
                   <Send className="w-4 h-4" />
                 </div>
               </div>
@@ -74,9 +77,9 @@ export default function Product() {
             <div className="w-12 h-12 rounded-2xl glass flex items-center justify-center mb-6 md:mb-8">
               <Search className="w-6 h-6" />
             </div>
-            <h3 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6">AI Scam Analyzer</h3>
+            <h3 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6">{t('home.product.analyzer.title')}</h3>
             <p className="text-base md:text-lg text-brand-text-secondary leading-relaxed mb-8">
-              Quickly analyze suspicious messages, emails, and links with our explainable AI. Get a clear verdict and understand the specific red flags identified by our pattern detection engine.
+              {t('home.product.analyzer.desc')}
             </p>
           </div>
         </div>
@@ -89,9 +92,9 @@ export default function Product() {
             <div className="w-12 h-12 rounded-2xl glass flex items-center justify-center mb-6 md:mb-8">
               <Globe className="w-6 h-6" />
             </div>
-            <h3 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6">Multilingual Awareness</h3>
+            <h3 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6">{t('home.product.multilingual.title')}</h3>
             <p className="text-base md:text-lg text-brand-text-secondary leading-relaxed">
-              Cyber safety is for everyone. Access our detailed scam-prevention guides in English, हिंदी, and ಕನ್ನಡ.
+              {t('home.product.multilingual.desc')}
             </p>
           </div>
           <div className="order-1 lg:order-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -145,9 +148,9 @@ export default function Product() {
             <div className="w-12 h-12 rounded-2xl glass flex items-center justify-center mb-6 md:mb-8">
               <RefreshCcw className="w-6 h-6" />
             </div>
-            <h3 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6">Detected Scam Patterns</h3>
+            <h3 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6">{t('home.product.patterns.title')}</h3>
             <p className="text-base md:text-lg text-brand-text-secondary leading-relaxed">
-              Our real-time engine analyzes user-submitted reports to identify emerging scam signatures. Stay informed about the latest trends in UPI fraud, job scams, and phishing attempts commonly targeting the community.
+              {t('home.product.patterns.desc')}
             </p>
           </div>
         </div>
@@ -160,16 +163,16 @@ export default function Product() {
             <div className="w-12 h-12 rounded-2xl glass flex items-center justify-center mb-6 md:mb-8">
               <Shield className="w-6 h-6" />
             </div>
-            <h3 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6">Trustworthy by Design</h3>
+            <h3 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6">{t('home.product.trust.title')}</h3>
             <p className="text-base md:text-lg text-brand-text-secondary leading-relaxed">
-              We employ military-grade AI models and verification layers to ensure you're always one step ahead of digital criminals.
+              {t('home.product.trust.desc')}
             </p>
           </div>
           <div className="space-y-4">
             {[
-              { label: "AI Verification Engine", icon: <Zap className="w-5 h-5 text-emerald-400" /> },
-              { label: "Zero-Trust Analysis", icon: <Lock className="w-5 h-5 text-blue-400" /> },
-              { label: "Community Shield", icon: <Users className="w-5 h-5 text-purple-400" /> }
+              { label: t('home.product.trust.items.engine'), icon: <Zap className="w-5 h-5 text-emerald-400" /> },
+              { label: t('home.product.trust.items.zero_trust'), icon: <Lock className="w-5 h-5 text-blue-400" /> },
+              { label: t('home.product.trust.items.shield'), icon: <Users className="w-5 h-5 text-purple-400" /> }
             ].map((tool, i) => (
               <div key={i} className="glass p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-between hover:bg-white/5 transition-all cursor-pointer group relative overflow-hidden">
                 <div className="flex items-center gap-4 md:gap-6">

@@ -6,30 +6,32 @@ import { ChevronDown, HelpCircle, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import CometCardDemo from "./comet-card-demo";
+import { useTranslation } from "../../i18n/TranslationContext";
 
 export function FAQAccordionBlock() {
+  const { t } = useTranslation();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   const faqs = [
     {
-      question: "How does the AI Scam Analyzer work?",
-      answer: "Our AI model analyzes patterns, language markers, and known fraudulent database links to determine if a message is suspicious. It evaluates the context and intent of the sender in real time."
+      question: t('home.faq.items.what_is.q'),
+      answer: t('home.faq.items.what_is.a')
     },
     {
-      question: "Can I use ScamShield for free?",
-      answer: "Yes, our core safety tools, including the Scam Analyzer and Learning Hub, are completely free for individual users. We believe digital safety should be accessible to everyone."
+      question: t('home.faq.items.is_free.q'),
+      answer: t('home.faq.items.is_free.a')
     },
     {
-      question: "Which languages are supported?",
-      answer: "Currently, we support English, Hindi (हिंदी), and Kannada (ಕನ್ನಾಡ). We are actively working on adding more regional languages to ensure everyone can stay protected locally."
+      question: t('home.faq.items.multiple_languages.q'),
+      answer: t('home.faq.items.multiple_languages.a')
     },
     {
-      question: "How do I report a new scam?",
-      answer: "Use our 'Report a Scam' form on the contact page. Your report helps train our AI and protects other users by adding new fraud patterns to our detection database."
+      question: t('home.faq.items.reporting.q'),
+      answer: t('home.faq.items.reporting.a')
     },
     {
-      question: "Is my pasted data stored?",
-      answer: "We prioritize your privacy. Pasted snippets for analysis are processed and then discarded. We only store anonymized fraud patterns to improve our detection algorithms."
+      question: t('home.faq.items.ai_accuracy.q'),
+      answer: t('home.faq.items.ai_accuracy.a')
     }
   ];
 
@@ -45,13 +47,13 @@ export function FAQAccordionBlock() {
         >
           <Badge className="mb-4" variant="secondary">
             <HelpCircle className="mr-1 h-3 w-3" />
-            FAQ
+            {t('home.faq.badge')}
           </Badge>
           <h2 className="mb-4 text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
-            Frequently Asked Questions
+            {t('home.faq.title')}
           </h2>
           <p className="mx-auto max-w-2xl text-base text-muted-foreground md:text-lg">
-            Have a question? We've got answers. If you don't find what you're looking for, please check our documentation or security guides.
+            {t('home.faq.subtitle')}
           </p>
         </motion.div>
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "../../i18n/TranslationContext";
 
 // --- Types ---
 export interface Testimonial {
@@ -9,68 +10,6 @@ export interface Testimonial {
   name: string;
   role: string;
 }
-
-// --- Data ---
-const testimonials: Testimonial[] = [
-  {
-    text: "ScamShield flagged an 'urgent' OTP message from my bank. I realized it was a scam and saved ₹45,000! Truly a life-saver.",
-    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Priya Sharma",
-    role: "Digital Banking User",
-  },
-  {
-    text: "The job scam guide helped me identify a fake interview request that asked for a security deposit. Stay safe people!",
-    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Rahul Mehra",
-    role: "Job Seeker",
-  },
-  {
-    text: "As a senior citizen, I was always afraid of clicking the wrong link. Now I just paste it into the analyzer first. Best tool ever.",
-    image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Mr. Kapoor",
-    role: "Resident",
-  },
-  {
-    text: "I almost fell for a social media impersonator. The analyzer detected the suspicious pattern instantly. Highly recommended!",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Sania Mirza",
-    role: "Creator",
-  },
-  {
-    text: "The Kannada safety guide is so thorough. My parents now understand UPI collect scams and how to avoid them.",
-    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Kiran Kumar",
-    role: "Marketing Manager",
-  },
-  {
-    text: "Detected a phishing link in a 'Congratulations' message within seconds. This tool is essential for everyone's phone.",
-    image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Anjali Gupta",
-    role: "IT Professional",
-  },
-  {
-    text: "The pattern detection is incredible. It caught a new 'Lottery' scam before it even became widely known in our area.",
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Vikram Singh",
-    role: "Community Voluntter",
-  },
-  {
-    text: "Simple, fast, and effective. The analyzer's suggested actions are very clear and helpful for non-tech users.",
-    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Neha Reddy",
-    role: "Bank Employee",
-  },
-  {
-    text: "ScamShield transformed my online habits. I'm much more aware of social engineering tactics now.",
-    image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Arjun Das",
-    role: "Student",
-  },
-];
-
-const firstColumn = testimonials.slice(0, 3);
-const secondColumn = testimonials.slice(3, 6);
-const thirdColumn = testimonials.slice(6, 9);
 
 // --- Sub-Components ---
 const TestimonialsColumn = (props: {
@@ -148,6 +87,69 @@ const TestimonialsColumn = (props: {
 };
 
 export const TestimonialsSectionV2 = () => {
+  const { t } = useTranslation();
+
+  const testimonials: Testimonial[] = [
+    {
+      text: t('home.testimonials.items.priya.quote'),
+      image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t('home.testimonials.items.priya.author'),
+      role: t('home.testimonials.items.priya.role'),
+    },
+    {
+      text: t('home.testimonials.items.rahul.quote'),
+      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t('home.testimonials.items.rahul.author'),
+      role: t('home.testimonials.items.rahul.role'),
+    },
+    {
+      text: t('home.testimonials.items.mr_kapoor.quote'),
+      image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t('home.testimonials.items.mr_kapoor.author'),
+      role: t('home.testimonials.items.mr_kapoor.role'),
+    },
+    {
+      text: t('home.testimonials.items.sania.quote'),
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t('home.testimonials.items.sania.author'),
+      role: t('home.testimonials.items.sania.role'),
+    },
+    {
+      text: t('home.testimonials.items.kiran.quote'),
+      image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t('home.testimonials.items.kiran.author'),
+      role: t('home.testimonials.items.kiran.role'),
+    },
+    {
+      text: t('home.testimonials.items.anjali.quote'),
+      image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t('home.testimonials.items.anjali.author'),
+      role: t('home.testimonials.items.anjali.role'),
+    },
+    {
+      text: t('home.testimonials.items.vikram.quote'),
+      image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t('home.testimonials.items.vikram.author'),
+      role: t('home.testimonials.items.vikram.role'),
+    },
+    {
+      text: t('home.testimonials.items.neha.quote'),
+      image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t('home.testimonials.items.neha.author'),
+      role: t('home.testimonials.items.neha.role'),
+    },
+    {
+      text: t('home.testimonials.items.arjun.quote'),
+      image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t('home.testimonials.items.arjun.author'),
+      role: t('home.testimonials.items.arjun.role'),
+    },
+  ];
+
+  const firstColumn = testimonials.slice(0, 3);
+  const secondColumn = testimonials.slice(3, 6);
+  const thirdColumn = testimonials.slice(6, 9);
+
   return (
     <section 
       aria-labelledby="testimonials-heading"
@@ -172,7 +174,7 @@ export const TestimonialsSectionV2 = () => {
               viewport={{ once: true }}
               className="border border-neutral-300 dark:border-neutral-700 py-1 px-4 rounded-full text-xs font-semibold tracking-wide uppercase text-neutral-600 dark:text-neutral-400 bg-neutral-100/50 dark:bg-neutral-800/50 transition-colors"
             >
-              Community Voice
+              {t('home.testimonials.badge')}
             </motion.div>
           </div>
 
@@ -184,7 +186,7 @@ export const TestimonialsSectionV2 = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mt-6 text-center text-neutral-900 dark:text-white transition-colors"
           >
-            Saved by ScamShield
+            {t('home.testimonials.title')}
           </motion.h2>
           <motion.p 
             initial={{ opacity: 0, x: 30 }}
@@ -193,7 +195,7 @@ export const TestimonialsSectionV2 = () => {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-center mt-5 text-neutral-500 dark:text-neutral-400 text-base sm:text-lg leading-relaxed max-w-sm transition-colors"
           >
-            Real stories from our community members who identified and avoided scams using our tools.
+            {t('home.testimonials.subtitle')}
           </motion.p>
         </div>
 
@@ -242,3 +244,4 @@ export default function App() {
     </div>
   );
 }
+

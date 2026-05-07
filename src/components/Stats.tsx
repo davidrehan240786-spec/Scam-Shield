@@ -13,13 +13,16 @@ import {
   CheckCircle2,
   Lock
 } from "lucide-react";
+import { useTranslation } from "../i18n/TranslationContext";
 
 export default function Stats() {
+  const { t } = useTranslation();
+
   const stats = [
-    { label: "Financial Impact", value: "₹500Cr+", description: "Estimated annual loss to cyber scams globally." },
-    { label: "Scams Detected", value: "40,000+", description: "Suspicious activities identified by our AI this month." },
-    { label: "Safety Rating", value: "98%", description: "Percentage of analyzed messages accurately classified." },
-    { label: "Response Time", value: "< 2s", description: "Real-time AI analysis for instant protection." },
+    { label: t('home.stats.items.financial.label'), value: t('home.stats.items.financial.value'), description: t('home.stats.items.financial.desc') },
+    { label: t('home.stats.items.detected.label'), value: t('home.stats.items.detected.value'), description: t('home.stats.items.detected.desc') },
+    { label: t('home.stats.items.rating.label'), value: t('home.stats.items.rating.value'), description: t('home.stats.items.rating.desc') },
+    { label: t('home.stats.items.time.label'), value: t('home.stats.items.time.value'), description: t('home.stats.items.time.desc') },
   ];
 
   return (
@@ -27,9 +30,9 @@ export default function Stats() {
       <div className="max-w-[1200px] mx-auto">
         <div className="mb-16">
           <div className="inline-block px-4 py-1.5 rounded-full glass border-white/10 text-[12px] font-medium text-white/50 mb-6 uppercase tracking-wider">
-            ● Impact & Protection
+            ● {t('home.stats.badge')}
           </div>
-          <h2 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">The Scale of Digital Threats</h2>
+          <h2 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">{t('home.stats.title')}</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
@@ -52,8 +55,8 @@ export default function Stats() {
               <div className="size-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-4">
                 <ShieldCheck className="size-6 text-emerald-400" />
               </div>
-              <CardTitle className="text-3xl font-bold text-white tracking-tight">Real-Time Defense</CardTitle>
-              <CardDescription className="text-white/40 mt-1">Our proactive approach to preventing financial loss.</CardDescription>
+              <CardTitle className="text-3xl font-bold text-white tracking-tight">{t('home.stats.defense.title')}</CardTitle>
+              <CardDescription className="text-white/40 mt-1">{t('home.stats.defense.subtitle')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8 pt-6">
               <div className="flex gap-4 group">
@@ -61,8 +64,8 @@ export default function Stats() {
                   <Lock className="size-4 text-emerald-400" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-white mb-1">Prevent Financial Loss</h4>
-                  <p className="text-sm text-white/40 leading-relaxed">Stop scams before they reach your wallet. Our real-time filters block fraudulent payment links and suspicious transaction requests before any financial loss can occur.</p>
+                  <h4 className="text-base font-bold text-white mb-1">{t('home.stats.defense.prevent.title')}</h4>
+                  <p className="text-sm text-white/40 leading-relaxed">{t('home.stats.defense.prevent.desc')}</p>
                 </div>
               </div>
               <div className="flex gap-4 group">
@@ -70,8 +73,8 @@ export default function Stats() {
                   <Brain className="size-4 text-indigo-400" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-white mb-1">Explainable AI Insights</h4>
-                  <p className="text-sm text-white/40 leading-relaxed">We don't just flag threats; we explain them. Our AI identifies malicious patterns and provides detailed context, helping you understand the 'why' behind suspicious activities.</p>
+                  <h4 className="text-base font-bold text-white mb-1">{t('home.stats.defense.insights.title')}</h4>
+                  <p className="text-sm text-white/40 leading-relaxed">{t('home.stats.defense.insights.desc')}</p>
                 </div>
               </div>
             </CardContent>
@@ -82,8 +85,8 @@ export default function Stats() {
               <div className="size-12 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-4">
                 <Users className="size-6 text-blue-400" />
               </div>
-              <CardTitle className="text-3xl font-bold text-white tracking-tight">Global Awareness</CardTitle>
-              <CardDescription className="text-white/40 mt-1">Strengthening the digital front through collective power.</CardDescription>
+              <CardTitle className="text-3xl font-bold text-white tracking-tight">{t('home.stats.global.title')}</CardTitle>
+              <CardDescription className="text-white/40 mt-1">{t('home.stats.global.subtitle')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8 pt-6">
               <div className="flex gap-4 group">
@@ -91,8 +94,8 @@ export default function Stats() {
                   <GraduationCap className="size-4 text-blue-400" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-white mb-1">Improve User Literacy</h4>
-                  <p className="text-sm text-white/40 leading-relaxed">Security is a skill. We help users develop a 'security-first' mindset through interactive tools and live safety training that adapts to evolving scam patterns.</p>
+                  <h4 className="text-base font-bold text-white mb-1">{t('home.stats.global.literacy.title')}</h4>
+                  <p className="text-sm text-white/40 leading-relaxed">{t('home.stats.global.literacy.desc')}</p>
                 </div>
               </div>
               <div className="flex gap-4 group">
@@ -100,8 +103,8 @@ export default function Stats() {
                   <Users className="size-4 text-purple-400" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-white mb-1">Community Reporting</h4>
-                  <p className="text-sm text-white/40 leading-relaxed">Enable community-driven reporting that scale. Your reports feed directly into our global detection engine, protecting millions of other users across the network instantly.</p>
+                  <h4 className="text-base font-bold text-white mb-1">{t('home.stats.global.reporting.title')}</h4>
+                  <p className="text-sm text-white/40 leading-relaxed">{t('home.stats.global.reporting.desc')}</p>
                 </div>
               </div>
             </CardContent>
