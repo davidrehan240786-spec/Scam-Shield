@@ -228,7 +228,7 @@ SafeNet-AI/
 
 ```bash
 git clone https://github.com/yourusername/safenet-ai.git
-cd safenet-ai
+cd Scam-Shield
 ```
 
 ---
