@@ -22,8 +22,8 @@ interface PupilProps {
   forceLookY?: number;
 }
 
-const Pupil = ({ 
-  size = 12, 
+const Pupil = ({
+  size = 12,
   maxDistance = 5,
   pupilColor = "black",
   forceLookX,
@@ -100,9 +100,9 @@ interface EyeBallProps {
   forceLookY?: number;
 }
 
-const EyeBall = ({ 
-  size = 48, 
-  pupilSize = 16, 
+const EyeBall = ({
+  size = 48,
+  pupilSize = 16,
   maxDistance = 10,
   eyeColor = "white",
   pupilColor = "black",
@@ -230,12 +230,12 @@ function SignUpPage() {
     const scheduleBlink = () => {
       const blinkTimeout = setTimeout(() => {
         setIsPurpleBlinking(true);
-        
+
         const isDoubleBlink = Math.random() > 0.8;
-        
+
         setTimeout(() => {
           setIsPurpleBlinking(false);
-          
+
           if (isDoubleBlink) {
             setTimeout(() => {
               setIsPurpleBlinking(true);
@@ -264,12 +264,12 @@ function SignUpPage() {
     const scheduleBlink = () => {
       const blinkTimeout = setTimeout(() => {
         setIsBlackBlinking(true);
-        
+
         const isDoubleBlink = Math.random() > 0.85;
 
         setTimeout(() => {
           setIsBlackBlinking(false);
-          
+
           if (isDoubleBlink) {
             setTimeout(() => {
               setIsBlackBlinking(true);
@@ -379,11 +379,11 @@ function SignUpPage() {
           message: `Welcome to ScamShield! Your account has been created successfully.`,
           variant: "success",
         });
-        
+
         // Simple heuristic for demo: if email contains "staff", go to staff dashboard
         const role = email.toLowerCase().includes("staff") ? "doctor" : "patient";
         localStorage.setItem("userRole", role);
-        
+
         if (role === "doctor") {
           navigate("/staff-dashboard");
         } else {
@@ -417,7 +417,7 @@ function SignUpPage() {
           {/* Cartoon Characters */}
           <div className="relative" style={{ width: '550px', height: '400px' }}>
             {/* Purple tall rectangle character - Back layer */}
-            <div 
+            <div
               ref={purpleRef}
               className="absolute bottom-0 transition-all duration-700 ease-in-out"
               style={{
@@ -430,35 +430,35 @@ function SignUpPage() {
                 transform: (password.length > 0 && showPassword)
                   ? `skewX(0deg)`
                   : (isTyping || (password.length > 0 && !showPassword))
-                    ? `skewX(${(purplePos.bodySkew || 0) - 12}deg) translateX(40px)` 
+                    ? `skewX(${(purplePos.bodySkew || 0) - 12}deg) translateX(40px)`
                     : `skewX(${purplePos.bodySkew || 0}deg)`,
                 transformOrigin: 'bottom center',
               }}
             >
               {/* Eyes */}
-              <div 
+              <div
                 className="absolute flex gap-8 transition-all duration-700 ease-in-out"
                 style={{
                   left: (password.length > 0 && showPassword) ? `${20}px` : isLookingAtEachOther ? `${55}px` : `${45 + purplePos.faceX}px`,
                   top: (password.length > 0 && showPassword) ? `${35}px` : isLookingAtEachOther ? `${65}px` : `${40 + purplePos.faceY}px`,
                 }}
               >
-                <EyeBall 
-                  size={18} 
-                  pupilSize={7} 
-                  maxDistance={5} 
-                  eyeColor="white" 
-                  pupilColor="#2D2D2D" 
+                <EyeBall
+                  size={18}
+                  pupilSize={7}
+                  maxDistance={5}
+                  eyeColor="white"
+                  pupilColor="#2D2D2D"
                   isBlinking={isPurpleBlinking}
                   forceLookX={(password.length > 0 && showPassword) ? (isPurplePeeking ? 4 : -4) : isLookingAtEachOther ? 3 : undefined}
                   forceLookY={(password.length > 0 && showPassword) ? (isPurplePeeking ? 5 : -4) : isLookingAtEachOther ? 4 : undefined}
                 />
-                <EyeBall 
-                  size={18} 
-                  pupilSize={7} 
-                  maxDistance={5} 
-                  eyeColor="white" 
-                  pupilColor="#2D2D2D" 
+                <EyeBall
+                  size={18}
+                  pupilSize={7}
+                  maxDistance={5}
+                  eyeColor="white"
+                  pupilColor="#2D2D2D"
                   isBlinking={isPurpleBlinking}
                   forceLookX={(password.length > 0 && showPassword) ? (isPurplePeeking ? 4 : -4) : isLookingAtEachOther ? 3 : undefined}
                   forceLookY={(password.length > 0 && showPassword) ? (isPurplePeeking ? 5 : -4) : isLookingAtEachOther ? 4 : undefined}
@@ -467,7 +467,7 @@ function SignUpPage() {
             </div>
 
             {/* Black tall rectangle character - Middle layer */}
-            <div 
+            <div
               ref={blackRef}
               className="absolute bottom-0 transition-all duration-700 ease-in-out"
               style={{
@@ -482,35 +482,35 @@ function SignUpPage() {
                   : isLookingAtEachOther
                     ? `skewX(${(blackPos.bodySkew || 0) * 1.5 + 10}deg) translateX(20px)`
                     : (isTyping || (password.length > 0 && !showPassword))
-                      ? `skewX(${(blackPos.bodySkew || 0) * 1.5}deg)` 
+                      ? `skewX(${(blackPos.bodySkew || 0) * 1.5}deg)`
                       : `skewX(${blackPos.bodySkew || 0}deg)`,
                 transformOrigin: 'bottom center',
               }}
             >
               {/* Eyes */}
-              <div 
+              <div
                 className="absolute flex gap-6 transition-all duration-700 ease-in-out"
                 style={{
                   left: (password.length > 0 && showPassword) ? `${10}px` : isLookingAtEachOther ? `${32}px` : `${26 + blackPos.faceX}px`,
                   top: (password.length > 0 && showPassword) ? `${28}px` : isLookingAtEachOther ? `${12}px` : `${32 + blackPos.faceY}px`,
                 }}
               >
-                <EyeBall 
-                  size={16} 
-                  pupilSize={6} 
-                  maxDistance={4} 
-                  eyeColor="white" 
-                  pupilColor="#2D2D2D" 
+                <EyeBall
+                  size={16}
+                  pupilSize={6}
+                  maxDistance={4}
+                  eyeColor="white"
+                  pupilColor="#2D2D2D"
                   isBlinking={isBlackBlinking}
                   forceLookX={(password.length > 0 && showPassword) ? -4 : isLookingAtEachOther ? 0 : undefined}
                   forceLookY={(password.length > 0 && showPassword) ? -4 : isLookingAtEachOther ? -4 : undefined}
                 />
-                <EyeBall 
-                  size={16} 
-                  pupilSize={6} 
-                  maxDistance={4} 
-                  eyeColor="white" 
-                  pupilColor="#2D2D2D" 
+                <EyeBall
+                  size={16}
+                  pupilSize={6}
+                  maxDistance={4}
+                  eyeColor="white"
+                  pupilColor="#2D2D2D"
                   isBlinking={isBlackBlinking}
                   forceLookX={(password.length > 0 && showPassword) ? -4 : isLookingAtEachOther ? 0 : undefined}
                   forceLookY={(password.length > 0 && showPassword) ? -4 : isLookingAtEachOther ? -4 : undefined}
@@ -519,7 +519,7 @@ function SignUpPage() {
             </div>
 
             {/* Orange semi-circle character - Front left */}
-            <div 
+            <div
               ref={orangeRef}
               className="absolute bottom-0 transition-all duration-700 ease-in-out"
               style={{
@@ -534,7 +534,7 @@ function SignUpPage() {
               }}
             >
               {/* Eyes - just pupils, no white */}
-              <div 
+              <div
                 className="absolute flex gap-8 transition-all duration-200 ease-out"
                 style={{
                   left: (password.length > 0 && showPassword) ? `${50}px` : `${82 + (orangePos.faceX || 0)}px`,
@@ -547,7 +547,7 @@ function SignUpPage() {
             </div>
 
             {/* Yellow tall rectangle character - Front right */}
-            <div 
+            <div
               ref={yellowRef}
               className="absolute bottom-0 transition-all duration-700 ease-in-out"
               style={{
@@ -562,7 +562,7 @@ function SignUpPage() {
               }}
             >
               {/* Eyes - just pupils, no white */}
-              <div 
+              <div
                 className="absolute flex gap-6 transition-all duration-200 ease-out"
                 style={{
                   left: (password.length > 0 && showPassword) ? `${20}px` : `${52 + (yellowPos.faceX || 0)}px`,
@@ -573,7 +573,7 @@ function SignUpPage() {
                 <Pupil size={12} maxDistance={5} pupilColor="#2D2D2D" forceLookX={(password.length > 0 && showPassword) ? -5 : undefined} forceLookY={(password.length > 0 && showPassword) ? -4 : undefined} />
               </div>
               {/* Horizontal line for mouth */}
-              <div 
+              <div
                 className="absolute w-20 h-[4px] bg-[#2D2D2D] rounded-full transition-all duration-200 ease-out"
                 style={{
                   left: (password.length > 0 && showPassword) ? `${10}px` : `${40 + (yellowPos.faceX || 0)}px`,
@@ -614,8 +614,8 @@ function SignUpPage() {
           </div>
 
           <div className="mb-8">
-            <Link 
-              to="/login" 
+            <Link
+              to="/login"
               className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
@@ -715,9 +715,9 @@ function SignUpPage() {
               </div>
             )}
 
-            <ButtonWithIcon 
-              type="submit" 
-              className="w-full h-12 text-base font-medium" 
+            <ButtonWithIcon
+              type="submit"
+              className="w-full h-12 text-base font-medium"
               disabled={isLoading}
               icon={ArrowUpRight}
             >
@@ -727,8 +727,8 @@ function SignUpPage() {
 
           {/* Social Login */}
           <div className="mt-6">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full h-12 bg-background border-border/60 hover:bg-accent"
               type="button"
               onClick={async () => {
@@ -745,10 +745,10 @@ function SignUpPage() {
               }}
             >
               <svg className="mr-2 size-5" viewBox="0 0 24 24">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
               </svg>
               Sign up with Google
             </Button>

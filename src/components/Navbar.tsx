@@ -51,7 +51,7 @@ export default function Navbar() {
     >
       <div className="max-w-[1200px] w-full px-6 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 z-50">
-          <img src="/LOGO.png" alt="SafeNet AI Logo" className="h-8 w-8 object-contain" />
+          <img src="/logo.png" alt="SafeNet AI Logo" className="h-8 w-8 object-contain" />
           <span className="font-bold text-lg tracking-tight uppercase">ScamShield</span>
         </Link>
 
