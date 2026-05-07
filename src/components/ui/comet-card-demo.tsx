@@ -18,15 +18,16 @@ export default function CometCardDemo() {
           <div className="relative mt-2 aspect-[3/4] w-full">
             <img
               loading="lazy"
-              className="absolute inset-0 h-full w-full rounded-[16px] bg-[#000000] object-cover contrast-50 brightness-50"
+              className="absolute inset-0 h-full w-full rounded-[16px] bg-[#000000] object-cover opacity-70 mix-blend-screen"
               alt="Cyber security background"
-              referrerPolicy="no-referrer"
-              src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1287&auto=format&fit=crop"
+              src="/Card2.jpg"
               style={{
                 boxShadow: "rgba(0, 0, 0, 0.05) 0px 5px 6px 0px",
-                opacity: 1,
               }}
             />
+            {/* Overlays for smooth blending and text readability */}
+            <div className="absolute inset-0 rounded-[16px] bg-gradient-to-t from-[#1F2121] via-transparent to-[#1F2121]/30" />
+            <div className="absolute inset-0 rounded-[16px] shadow-[inset_0_0_40px_rgba(0,0,0,0.8)]" />
             {/* Center Text */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 z-10">
               <h3 className="text-white text-xl font-bold mb-2 tracking-tight">ScamShield</h3>
@@ -45,8 +46,8 @@ export default function CometCardDemo() {
               Your protection starts here.
             </p>
           </div>
-          
-          <HoverAnimationButton 
+
+          <HoverAnimationButton
             onClick={() => navigate("/signup")}
             className="w-full"
           >

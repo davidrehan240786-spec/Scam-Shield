@@ -1,26 +1,35 @@
 import { ArticleCardGrid } from "./ui/card-grid";
 
+/**
+ * YouTube video IDs are used to generate official HQ thumbnails via:
+ * https://img.youtube.com/vi/{VIDEO_ID}/hqdefault.jpg
+ *
+ * This gives us real, always-updated thumbnails without any API key.
+ */
 const posts = [
   {
     id: 1,
-    imageSrc: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop',
-    title: 'Recognizing Digital Identity Theft in 2024',
-    linkText: 'Read more',
-    linkHref: '#',
+    // Video ID extracted from: https://youtu.be/mZ1rg_GJu2M?si=KYsEL5CIUzkJPCKv
+    imageSrc: 'https://img.youtube.com/vi/mZ1rg_GJu2M/maxresdefault.jpg',
+    title: 'Recognizing Digital Identity Theft in 2026',
+    linkText: 'Watch on YouTube',
+    linkHref: 'https://youtu.be/mZ1rg_GJu2M?si=KYsEL5CIUzkJPCKv',
   },
   {
     id: 2,
-    imageSrc: 'https://images.unsplash.com/photo-1614064641938-3bbee52942c7?q=80&w=2070&auto=format&fit=crop',
-    title: 'Top 5 tips for securing your digital banking',
-    linkText: 'Learn more',
-    linkHref: '#',
+    // Video ID extracted from: https://youtu.be/k6iI9pFDWLI?si=BvhB5rhnI-L5XnEa
+    imageSrc: 'https://img.youtube.com/vi/k6iI9pFDWLI/maxresdefault.jpg',
+    title: 'How To Protect Your Online Bank Account',
+    linkText: 'Watch on YouTube',
+    linkHref: 'https://youtu.be/k6iI9pFDWLI?si=BvhB5rhnI-L5XnEa',
   },
   {
     id: 3,
-    imageSrc: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=2070&auto=format&fit=crop',
-    title: 'The psychology of social engineering scams',
-    linkText: 'Keep reading',
-    linkHref: '#',
+    // Video ID extracted from: https://youtu.be/uvKTMgWRPw4?si=t1whnw4wiDWutn9q
+    imageSrc: 'https://img.youtube.com/vi/uvKTMgWRPw4/maxresdefault.jpg',
+    title: 'What is Social Engineering?',
+    linkText: 'Watch on YouTube',
+    linkHref: 'https://youtu.be/uvKTMgWRPw4?si=t1whnw4wiDWutn9q',
   },
 ];
 
@@ -35,9 +44,9 @@ export default function Blog() {
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">Stay Informed, Stay Safe</h2>
         </div>
 
-        <ArticleCardGrid 
-          title="Want to stay updated?" 
-          articles={posts} 
+        <ArticleCardGrid
+          title="Learn from cybersecurity experts"
+          articles={posts}
         />
       </div>
     </section>
