@@ -61,7 +61,7 @@ Analyze suspicious messages and URLs using:
 ## 🌐 Multi-Language Support
 Fully localized UI with support for:
 
-- 🇬🇧 English
+- 🇬🇧 English.
 - 🇮🇳 हिन्दी (Hindi)
 - 🇮🇳 ಕನ್ನಡ (Kannada)
 
